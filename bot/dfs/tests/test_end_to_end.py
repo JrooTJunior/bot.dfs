@@ -131,7 +131,7 @@ class EndToEndTest(BaseServersTest):
         self.worker.scanner()
         self.worker.filter_tender()
         data = Data('123', award_ids[2], CODES[2], "awards", {'meta': {'sourceRequests': [request_ids[0]]}})
-        sleep(1)
+        sleep(5)
         sleep_until_done(self.worker, is_working_filter)
         self.assertEqual(self.worker.edrpou_codes_queue.qsize(), 1)
         self.check_data_objects(self.worker.edrpou_codes_queue.get(), data)
