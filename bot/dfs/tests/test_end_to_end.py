@@ -13,7 +13,7 @@ from mock import patch
 from bottle import response, request
 
 from base import BaseServersTest, config
-from bot.dfs.bridge.constants import author, version, tender_status
+from bot.dfs.bridge.constants import author, version, tender_status, AWARD_STATUS
 from bot.dfs.bridge.sleep_change_value import APIRateController
 from bot.dfs.bridge.process_tracker import ProcessTracker
 from bot.dfs.bridge.data import Data
@@ -72,29 +72,21 @@ def get_tenders_response():
 
 
 def get_tenders_response_sux():
-    return dumps({'prev_page': {'offset': '123'},
-                  'next_page': {'offset': '1234'},
-                  'data': [{'status': tender_status,
-                            "id": '123',
-                            'procurementMethodType': 'aboveThresholdEU'}]})
+    return dumps({'prev_page': {'offset': '123'}, 'next_page': {'offset': '1234'},
+                  'data': [{'status': tender_status, "id": '123', 'procurementMethodType': 'aboveThresholdEU'}]})
 
 
 def get_empty_response():
-    return dumps({'prev_page': {'offset': '1234'},
-                  'next_page': {'offset': '12345'},
-                  'data': []})
+    return dumps({'prev_page': {'offset': '1234'}, 'next_page': {'offset': '12345'}, 'data': []})
 
 
 def get_tender_response():
     response.status = 200
     response.content_type = 'application/json'
     response.headers.update({'X-Request-ID': request_ids[0]})
-    return dumps({'prev_page': {'offset': '123'},
-                  'next_page': {'offset': '1234'},
-                  'data': {'status': tender_status,
-                           'id': '123',
-                           'procurementMethodType': 'aboveThresholdEU',
-                           'awards': [awards(2, 2, 'pending', CODES[2])]}})
+    return dumps({'prev_page': {'offset': '123'}, 'next_page': {'offset': '1234'},
+                  'data': {'status': tender_status, 'id': '123', 'procurementMethodType': 'aboveThresholdEU',
+                           'awards': [awards(2, 2, AWARD_STATUS, CODES[2])]}})
 
 
 class EndToEndTest(BaseServersTest):

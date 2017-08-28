@@ -6,7 +6,7 @@ from copy import deepcopy, copy
 from logging import getLogger
 from uuid import uuid4
 
-from constants import version, qualification_procurementMethodType, tender_status
+from constants import version, qualification_procurementMethodType, tender_status, DOC_TYPE, AWARD_STATUS
 from restkit import ResourceError
 from simplejson import JSONDecodeError
 
@@ -29,6 +29,7 @@ def generate_req_id():
 
 def generate_doc_id():
     return uuid4().hex
+
 
 class RetryException(Exception):
     pass
@@ -88,8 +89,8 @@ def fill_data_list(response, tender_data, data_list):
 
 
 def should_process_item(item):
-    return (item['status'] == 'pending' and not [document for document in item.get('documents', [])
-                                                 if document.get('documentType') == 'registerExtract'])
+    return (item['status'] == AWARD_STATUS and not [document for document in item.get('documents', [])
+                                                if document.get('documentType') == DOC_TYPE])
 
 
 def is_code_invalid(code):
