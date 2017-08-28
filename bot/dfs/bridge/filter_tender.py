@@ -57,7 +57,7 @@ class FilterTenders(BaseWorker):
                                                                                 tender_id),
                                                             headers={'X-Client-Request-ID': generate_req_id()})
             except Exception as e:
-                if getattr(e, "status_int", False) and e.status_int == 429:
+                if getattr(e, "status_int", False) == 429:
                     self.sleep_change_value.increment()
                     logger.info("Waiting tender {} for sleep_change_value: {} seconds".format(
                         tender_id, self.sleep_change_value.time_between_requests))

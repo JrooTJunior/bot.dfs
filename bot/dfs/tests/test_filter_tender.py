@@ -18,7 +18,7 @@ from bottle import Bottle, response
 from simplejson import dumps
 from gevent import event
 
-from bot.dfs.bridge.constants import author, tender_status
+from bot.dfs.bridge.constants import author, tender_status, AWARD_STATUS
 from bot.dfs.bridge.filter_tender import FilterTenders
 from bot.dfs.bridge.utils import item_key
 from bot.dfs.bridge.process_tracker import ProcessTracker
@@ -62,10 +62,8 @@ def response_get_tender():
                            'procurementMethodType': 'aboveThresholdEU',
                            'awards': [{'id': '124',
                                        'bid_id': '111',
-                                       'status': 'pending',
-                                       'suppliers': [{'identifier': {
-                                           'scheme': 'UA-EDR',
-                                           'id': CODES[0]}}]}]}})
+                                       'status': AWARD_STATUS,
+                                       'suppliers': [{'identifier': {'scheme': 'UA-EDR', 'id': CODES[0]}}]}]}})
 
 
 def generate_response():
@@ -99,7 +97,7 @@ class TestFilterWorker(unittest.TestCase):
                                                'data': {'status': tender_status,
                                                         'id': self.tender_id,
                                                         'procurementMethodType': 'aboveThresholdEU',
-                                                        'awards': [self.awards(0, 0, 'pending', CODES[0])]}}))
+                                                        'awards': [self.awards(0, 0, AWARD_STATUS, CODES[0])]}}))
 
     def tearDown(self):
         self.worker.shutdown()
@@ -142,29 +140,25 @@ class TestFilterWorker(unittest.TestCase):
     @patch('gevent.sleep')
     def test_worker_award(self, gevent_sleep):
         gevent_sleep.side_effect = custom_sleep
-        self.client.request.side_effect = [ResponseMock({'X-Request-ID': self.request_ids[0]},
-                                                        munchify({'prev_page': {'offset': '123'},
-                                                                  'next_page': {'offset': '1234'},
-                                                                  'data': {'status': "active.pre-qualification",
-                                                                           'id': self.tender_id,
-                                                                           'procurementMethodType': 'aboveThresholdEU',
-                                                                           'awards': [
-                                                                               self.awards(0, 0, 'pending', CODES[0]),
-                                                                               self.awards(1, 1, 'pending', CODES[1]),
-                                                                               self.awards(2, 2, 'pending', CODES[2]),
-                                                                               self.awards(3, 3, 'unsuccessful',
-                                                                                           CODES[2]),
-                                                                               {'id': self.bid_ids[4],
-                                                                                'tenderers': [{'identifier': {
-                                                                                    'scheme': 'UA-ED',
-                                                                                    'id': CODES[2]}}]}]}}))]
-        for i in range(3):
-            data = Data(self.tender_id, self.award_ids[i], CODES[i], 'awards',
-                        {'meta': {'sourceRequests': [self.request_ids[0]]}})
-            self.check_data_objects(self.edrpou_codes_queue.get(), data)
+        self.client.request.side_effect = [
+            ResponseMock({'X-Request-ID': self.request_ids[0]},
+                         munchify({'prev_page': {'offset': '123'},
+                                   'next_page': {'offset': '1234'},
+                                   'data': {'status': "active.pre-qualification",
+                                            'id': self.tender_id,
+                                            'procurementMethodType': 'aboveThresholdEU',
+                                            'awards': [
+                                                self.awards(0, 0, AWARD_STATUS, CODES[0]),
+                                                self.awards(3, 3, 'unsuccessful', CODES[2]),
+                                                {'id': self.bid_ids[4],
+                                                 'tenderers': [{'identifier': {
+                                                     'scheme': 'UA-ED',
+                                                     'id': CODES[2]}}]}]}}))]
+        data = Data(self.tender_id, self.award_ids[0], CODES[0], 'awards',
+                    {'meta': {'sourceRequests': [self.request_ids[0]]}})
+        self.check_data_objects(self.edrpou_codes_queue.get(), data)
         self.assertItemsEqual(self.process_tracker.processing_items.keys(),
-                              [item_key(self.tender_id, self.award_ids[0]), item_key(self.tender_id, self.award_ids[1]),
-                               item_key(self.tender_id, self.award_ids[2])])
+                              [item_key(self.tender_id, self.award_ids[0])])
 
     @patch('gevent.sleep')
     def test_get_tender_exception(self, gevent_sleep):
@@ -210,7 +204,7 @@ class TestFilterWorker(unittest.TestCase):
                                    'data': {'status': tender_status,
                                             'id': self.tender_id,
                                             'procurementMethodType': 'aboveThresholdEU',
-                                            'awards': [self.awards(0, 0, 'pending', CODES[0]),
+                                            'awards': [self.awards(0, 0, AWARD_STATUS, CODES[0]),
                                                        self.awards(1, 1, 'unsuccessful', CODES[2])]}}))]
         data = Data(self.tender_id, self.award_ids[0], CODES[0], 'awards',
                     {'meta': {'sourceRequests': [self.request_ids[0]]}})
@@ -231,7 +225,7 @@ class TestFilterWorker(unittest.TestCase):
                                        'status': tender_status,
                                        'id': self.tender_id,
                                        'procurementMethodType': 'aboveThresholdEU',
-                                       'awards': [self.awards(i, i, 'pending', CODES[0])]}})) for i in range(2)]
+                                       'awards': [self.awards(i, i, AWARD_STATUS, CODES[0])]}})) for i in range(2)]
         for i in range(2):
             data = Data(self.tender_id, self.award_ids[i], CODES[0], 'awards',
                         {'meta': {'sourceRequests': [self.request_ids[i]]}})
@@ -256,30 +250,25 @@ class TestFilterWorker(unittest.TestCase):
     @patch('gevent.sleep')
     def test_worker_award_with_cancelled_lot(self, gevent_sleep):
         gevent_sleep.side_effect = custom_sleep
-        self.client.request.return_value = ResponseMock({'X-Request-ID': self.request_ids[0]},
-                                                        munchify({'prev_page': {'offset': '123'},
-                                                                  'next_page': {'offset': '1234'},
-                                                                  'data': {'status': tender_status,
-                                                                           'id': self.tender_id,
-                                                                           'procurementMethodType': 'aboveThresholdEU',
-                                                                           'lots': [{'status': 'cancelled',
-                                                                                     'id': '123456789'},
-                                                                                    {'status': 'active',
-                                                                                     'id': '12345678'}],
-                                                                           'awards': [{'id': self.award_ids[0],
-                                                                                       'bid_id': self.bid_ids[0],
-                                                                                       'status': 'pending',
-                                                                                       'suppliers': [{'identifier': {
-                                                                                           'scheme': 'UA-EDR',
-                                                                                           'id': CODES[0]}}],
-                                                                                       'lotID': '123456789'},
-                                                                                      {'id': self.award_ids[1],
-                                                                                       'bid_id': self.bid_ids[1],
-                                                                                       'status': 'pending',
-                                                                                       'suppliers': [{'identifier': {
-                                                                                           'scheme': 'UA-EDR',
-                                                                                           'id': CODES[1]}}],
-                                                                                       'lotID': '12345678'}]}}))
+        self.client.request.return_value = ResponseMock(
+            {'X-Request-ID': self.request_ids[0]},
+            munchify({'prev_page': {'offset': '123'},
+                      'next_page': {'offset': '1234'},
+                      'data': {'status': tender_status,
+                               'id': self.tender_id,
+                               'procurementMethodType': 'aboveThresholdEU',
+                               'lots': [{'status': 'cancelled', 'id': '123456789'},
+                                        {'status': 'active', 'id': '12345678'}],
+                               'awards': [{'id': self.award_ids[0],
+                                           'bid_id': self.bid_ids[0],
+                                           'status': AWARD_STATUS,
+                                           'suppliers': [{'identifier': {'scheme': 'UA-EDR', 'id': CODES[0]}}],
+                                           'lotID': '123456789'},
+                                          {'id': self.award_ids[1],
+                                           'bid_id': self.bid_ids[1],
+                                           'status': AWARD_STATUS,
+                                           'suppliers': [{'identifier': {'scheme': 'UA-EDR', 'id': CODES[1]}}],
+                                           'lotID': '12345678'}]}}))
         data = Data(self.tender_id, self.award_ids[1], CODES[1], 'awards',
                     {'meta': {'sourceRequests': [self.request_ids[0]]}})
         for edrpou in [data]:
@@ -290,19 +279,14 @@ class TestFilterWorker(unittest.TestCase):
     @patch('gevent.sleep')
     def test_award_not_valid_identifier_id(self, gevent_sleep):
         gevent_sleep.side_effect = custom_sleep
-        self.client.request.return_value = ResponseMock({'X-Request-ID': self.request_ids[0]},
-                                                        munchify({'prev_page': {'offset': '123'},
-                                                                  'next_page': {'offset': '1234'},
-                                                                  'data': {'status': tender_status,
-                                                                           'id': self.tender_id,
-                                                                           'procurementMethodType': 'aboveThresholdEU',
-                                                                           'awards': [self.awards(0, 0, 'pending', ''),
-                                                                                      self.awards(0, 0, 'pending',
-                                                                                                  u'абв'),
-                                                                                      self.awards(0, 1, 'pending',
-                                                                                                  'абв'),
-                                                                                      self.awards(1, 1, 'pending',
-                                                                                                  'test@test.com')]}}))
+        self.client.request.return_value = ResponseMock(
+            {'X-Request-ID': self.request_ids[0]},
+            munchify({'prev_page': {'offset': '123'},
+                      'next_page': {'offset': '1234'},
+                      'data': {'status': tender_status,
+                               'id': self.tender_id,
+                               'procurementMethodType': 'aboveThresholdEU',
+                               'awards': [self.awards(0, 0, AWARD_STATUS, '')]}}))
         sleep(1)
         self.assertEqual(self.edrpou_codes_queue.qsize(), 0)
         self.assertItemsEqual(self.process_tracker.processing_items, {})
@@ -319,15 +303,12 @@ class TestFilterWorker(unittest.TestCase):
         setup_routing(api_server_bottle, generate_response, path='/api/2.3/tenders/123')
         api_server.start()
         client = TendersClientSync('', host_url='http://127.0.0.1:20604', api_version='2.3')
-        self.assertEqual(client.headers['Cookie'],
-                         'SERVER_ID={}'.format(SPORE_COOKIES))  # check that response_spore set cookies
+        self.assertEqual(client.headers['Cookie'], 'SERVER_ID={}'.format(SPORE_COOKIES))
         worker = FilterTenders.spawn(client, filtered_tender_ids_queue, self.edrpou_codes_queue, self.process_tracker,
                                      MagicMock(), self.sleep_change_value)
         data = Data('123', '124', CODES[0], 'awards', {'meta': {'sourceRequests': ['125']}})
-        for i in [data]:
-            self.check_data_objects(self.edrpou_codes_queue.get(), i)
-        self.assertEqual(client.headers['Cookie'],
-                         'SERVER_ID={}'.format(COOKIES_412))  # check that response_412 change cookies
+        self.check_data_objects(self.edrpou_codes_queue.get(), data)
+        self.assertEqual(client.headers['Cookie'],  'SERVER_ID={}'.format(COOKIES_412))
         self.assertEqual(self.edrpou_codes_queue.qsize(), 0)
         self.assertItemsEqual(self.process_tracker.processing_items.keys(), ['123_124'])
         worker.shutdown()
@@ -337,15 +318,15 @@ class TestFilterWorker(unittest.TestCase):
     @patch('gevent.sleep')
     def test_request_failed(self, gevent_sleep):
         gevent_sleep.side_effect = custom_sleep
-        self.client.request.side_effect = [RequestFailed(http_code=401, msg=RequestFailed()),
-                                           ResponseMock({'X-Request-ID': self.request_ids[0]},
-                                                        munchify({'prev_page': {'offset': '123'},
-                                                                  'next_page': {'offset': '1234'},
-                                                                  'data': {'status': tender_status,
-                                                                           'id': self.tender_id,
-                                                                           'procurementMethodType': 'aboveThresholdEU',
-                                                                           'awards': [
-                                                                               self.awards(0, 0, 'pending', '')]}}))]
+        self.client.request.side_effect = [
+            RequestFailed(http_code=401, msg=RequestFailed()),
+            ResponseMock({'X-Request-ID': self.request_ids[0]},
+                         munchify({'prev_page': {'offset': '123'},
+                                   'next_page': {'offset': '1234'},
+                                   'data': {'status': tender_status,
+                                            'id': self.tender_id,
+                                            'procurementMethodType': 'aboveThresholdEU',
+                                            'awards': [self.awards(0, 0, AWARD_STATUS, '')]}}))]
         sleep(1)
         self.assertEqual(self.client.request.call_count, 2)
         self.assertEqual(self.edrpou_codes_queue.qsize(), 0)
