@@ -41,7 +41,7 @@ class BaseServersTest(unittest.TestCase):
         cls.api_server = WSGIServer(('127.0.0.1', 20604), cls.api_server_bottle, log=None)
         setup_routing(cls.api_server_bottle, response_spore)
         cls.public_api_server = WSGIServer(('127.0.0.1', 20605), cls.api_server_bottle, log=None)
-        cls.redis_process = subprocess.Popen(['redis-server', '--port', str(config['main']['cache_port'])])
+        cls.redis_process = subprocess.Popen(['redis-server', '--port', str(config['main']['cache_port']), '--logfile /dev/null'])
         sleep(0.1)
         cls.redis = StrictRedis(port=str(config['main']['cache_port']))
 
