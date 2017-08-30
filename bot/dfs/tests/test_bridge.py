@@ -120,9 +120,10 @@ class TestBridgeWorker(BaseServersTest):
     @patch("gevent.sleep")
     def test_launch(self, gevent_sleep):
         self.worker = EdrDataBridge(config)
-        with patch('__builtin__.True', AlmostAlwaysTrue(10)):
-            self.worker.launch()
-        gevent_sleep.assert_called_once()
+        self.worker.run = MagicMock()
+        self.worker.all_available = MagicMock(return_value=True)
+        self.worker.launch()
+        self.worker.run.assert_called_once()
 
     @patch("gevent.sleep")
     def test_launch_unavailable(self, gevent_sleep):
@@ -132,34 +133,16 @@ class TestBridgeWorker(BaseServersTest):
             self.worker.launch()
         gevent_sleep.assert_called_once()
 
-    def test_revive_job(self):
-        self.worker = EdrDataBridge(config)
-        self.worker._start_jobs()
-        self.assertEqual(self.worker.jobs['scanner'].dead, False)
-        killall(self.worker.jobs.values(), timeout=1)
-        self.assertEqual(self.worker.jobs['scanner'].dead, True)
-        self.worker.revive_job('scanner')
-        self.assertEqual(self.worker.jobs['scanner'].dead, False)
-        killall(self.worker.jobs.values())
-
-    def test_check_and_revive_jobs_mock(self):
-        self.worker = EdrDataBridge(config)
-        self.worker._start_jobs()
-        self.assertEqual(self.worker.jobs['scanner'].dead, False)
-        killall(self.worker.jobs.values(), timeout=1)
-        self.worker.revive_job = MagicMock()
-        self.assertEqual(self.worker.jobs['scanner'].dead, True)
-        self.worker.check_and_revive_jobs()
-        self.assertEqual(self.worker.jobs['scanner'].dead, True)
-        self.worker.revive_job.assert_called_once()
-        killall(self.worker.jobs.values())
-
     def test_check_and_revive_jobs(self):
         self.worker = EdrDataBridge(config)
-        self.worker._start_jobs()
-        self.assertEqual(self.worker.jobs['scanner'].dead, False)
-        killall(self.worker.jobs.values(), timeout=1)
-        self.assertEqual(self.worker.jobs['scanner'].dead, True)
+        self.worker.jobs = {"test": MagicMock(dead=MagicMock(return_value=True))}
+        self.worker.revive_job = MagicMock()
         self.worker.check_and_revive_jobs()
-        self.assertEqual(self.worker.jobs['scanner'].dead, False)
-        killall(self.worker.jobs.values())
+        self.worker.revive_job.assert_called_once_with("test")
+
+    def test_revive_job(self):
+        self.worker = EdrDataBridge(config)
+        self.worker.test = MagicMock()
+        self.worker.jobs = {"test": MagicMock(dead=MagicMock(return_value=True))}
+        self.worker.revive_job("test")
+        self.assertEqual(self.worker.jobs['test'].dead, False)
