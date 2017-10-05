@@ -21,6 +21,7 @@ from openprocurement_client.client import TendersClientSync as BaseTendersClient
 from process_tracker import ProcessTracker
 from scanner import Scanner
 from request_for_reference import RequestForReference
+from requests_db import RequestsDb
 from caching import Db
 from filter_tender import FilterTenders
 from utils import journal_context, check_412
@@ -69,8 +70,6 @@ class EdrDataBridge(object):
         self.filtered_tender_ids_queue = Queue(maxsize=buffers_size)  # queue of tender IDs with appropriate status
         self.edrpou_codes_queue = Queue(maxsize=buffers_size)  # queue with edrpou codes (Data objects stored in it)
         self.reference_queue = Queue(maxsize=buffers_size)  # queue of request IDs and documents
-        self.upload_to_doc_service_queue = Queue(maxsize=buffers_size)  # queue with info from EDR (Data.file_content)
-        self.upload_to_tender_queue = Queue(maxsize=buffers_size)
 
         # blockers
         self.initialization_event = event.Event()
@@ -78,6 +77,7 @@ class EdrDataBridge(object):
         self.services_not_available.set()
         self.db = Db(config)
         self.process_tracker = ProcessTracker(self.db, self.time_to_live)
+        self.request_db = RequestsDb(self.db)
 
         # Workers
         self.scanner = partial(Scanner.spawn,
@@ -100,6 +100,7 @@ class EdrDataBridge(object):
         self.request_for_reference = partial(RequestForReference.spawn,
                                              tenders_sync_client=self.tenders_sync_client,
                                              reference_queue=self.reference_queue,
+                                             request_db=self.request_db,
                                              services_not_available=self.services_not_available,
                                              sleep_change_value=self.sleep_change_value,
                                              delay=self.delay)
@@ -145,7 +146,7 @@ class EdrDataBridge(object):
     def _start_jobs(self):
         self.jobs = {'scanner': self.scanner(),
                      'filter_tender': self.filter_tender(),
-                     'request_for_reference': self.request_for_reference(), }
+                     'request_for_reference': self.request_for_reference()}
 
     def launch(self):
         while True:
@@ -165,7 +166,7 @@ class EdrDataBridge(object):
                 if counter == 20:
                     counter = 0
                     logger.info(
-                        'Current state: Filtered tenders {}; Edrpou codes queue {}; References {}'.format(
+                        'Current state: Filtered tenders {}; Edrpou codes queue {}; References queue {}'.format(
                             self.filtered_tender_ids_queue.qsize(),
                             self.edrpou_codes_queue.qsize(),
                             self.reference_queue.qsize()))

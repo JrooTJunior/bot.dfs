@@ -44,6 +44,18 @@ class Db(object):
         LOGGER.info("Checking if code {} is in the cache".format(key))
         return self.has_value(key)
 
+    def hgetall(self, key):
+        return self.db.hgetall(key)
+
+    def smembers(self, key):
+        return self.db.smembers(key)
+
+    def sadd(self, key, value):
+        return self.db.sadd(key, value)
+
+    def hmset(self, key, value):
+        return self.db.hmset(key, value)
+
 
 def db_key(tender_id):
     return "{}".format(tender_id)
