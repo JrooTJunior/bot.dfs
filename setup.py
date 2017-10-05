@@ -6,6 +6,7 @@ version = '1.0'
 requires = [
     'redis',
     'setuptools',
+    'zeep'
 ]
 
 test_requires = requires + [
@@ -23,7 +24,7 @@ databridge_requires = requires + [
     'LazyDB',
     'ExtendedJournalHandler',
     'requests',
-    'openprocurement_client>=1.0b2'
+    'openprocurement_client>=1.0b2',
 ]
 
 entry_points = {
