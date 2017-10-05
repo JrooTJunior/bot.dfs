@@ -6,6 +6,7 @@ version = '1.0'
 requires = [
     'redis',
     'setuptools',
+    'zeep'
 ]
 
 test_requires = requires + [

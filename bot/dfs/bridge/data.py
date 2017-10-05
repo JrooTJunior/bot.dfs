@@ -3,7 +3,7 @@ from constants import id_passport_len
 
 
 class Data(object):
-    def __init__(self, tender_id, item_id, code, item_name, file_content):
+    def __init__(self, tender_id, item_id=None, code=None, item_name=None, file_content=None):
         self.tender_id = tender_id
         self.item_id = item_id
         self.code = code
