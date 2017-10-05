@@ -24,7 +24,7 @@ databridge_requires = requires + [
     'LazyDB',
     'ExtendedJournalHandler',
     'requests',
-    'openprocurement_client>=1.0b2',
+    'openprocurement_client>=1.0b2'
 ]
 
 entry_points = {
