@@ -263,18 +263,17 @@ class TestFilterWorker(unittest.TestCase):
                                            'bid_id': self.bid_ids[0],
                                            'status': AWARD_STATUS,
                                            'suppliers': [{'identifier': {'scheme': 'UA-EDR', 'id': CODES[0]}}],
-                                           'lotID': '123456789'},
+                                           'lotID': '12345678'},
                                           {'id': self.award_ids[1],
                                            'bid_id': self.bid_ids[1],
-                                           'status': AWARD_STATUS,
+                                           'status': 'cancelled',
                                            'suppliers': [{'identifier': {'scheme': 'UA-EDR', 'id': CODES[1]}}],
-                                           'lotID': '12345678'}]}}))
-        data = Data(self.tender_id, self.award_ids[1], CODES[1], 'awards',
+                                           'lotID': '123456789'}]}}))
+        data = Data(self.tender_id, self.award_ids[0], CODES[0], 'awards',
                     {'meta': {'sourceRequests': [self.request_ids[0]]}})
-        for edrpou in [data]:
-            self.check_data_objects(self.edrpou_codes_queue.get(), edrpou)
+        self.check_data_objects(self.edrpou_codes_queue.get(), data)
         self.assertItemsEqual(self.process_tracker.processing_items.keys(),
-                              [item_key(self.tender_id, self.award_ids[1])])
+                              [item_key(self.tender_id, self.award_ids[0])])
 
     @patch('gevent.sleep')
     def test_award_not_valid_identifier_id(self, gevent_sleep):

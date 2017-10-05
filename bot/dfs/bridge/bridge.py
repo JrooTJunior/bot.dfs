@@ -70,8 +70,6 @@ class EdrDataBridge(object):
         # init queues for workers
         self.filtered_tender_ids_queue = Queue(maxsize=buffers_size)  # queue of tender IDs with appropriate status
         self.edrpou_codes_queue = Queue(maxsize=buffers_size)  # queue with edrpou codes (Data objects stored in it)
-        self.upload_to_doc_service_queue = Queue(maxsize=buffers_size)  # queue with info from EDR (Data.file_content)
-        self.upload_to_tender_queue = Queue(maxsize=buffers_size)
 
         # blockers
         self.initialization_event = event.Event()

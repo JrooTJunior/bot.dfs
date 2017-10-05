@@ -90,7 +90,7 @@ def fill_data_list(response, tender_data, data_list):
 
 def should_process_item(item):
     return (item['status'] == AWARD_STATUS and not [document for document in item.get('documents', [])
-                                                if document.get('documentType') == DOC_TYPE])
+                                                    if document.get('documentType') == DOC_TYPE])
 
 
 def is_code_invalid(code):
