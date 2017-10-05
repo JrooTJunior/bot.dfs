@@ -9,7 +9,7 @@ class ProcessTracker(object):
     def __init__(self, db=None, ttl=300):
         self.processing_items = {}
         self.processed_items = {}
-        self._db = db
+        self._db = db`
         self.tender_documents_to_process = {}
         self.ttl = ttl
 
