@@ -9,6 +9,7 @@ import os
 import argparse
 import gevent
 
+from zeep import Client
 from functools import partial
 from yaml import load
 from gevent import event
@@ -64,6 +65,7 @@ class EdrDataBridge(object):
 
         # init clients
         self.tenders_sync_client = TendersClientSync('', host_url=ro_api_server, api_version=self.api_version)
+        self.dfs_client = Client('http://obmen.sfs.gov.ua/SwinEd.asmx?WSDL')
         self.client = TendersClient(self.config_get('api_token'), host_url=api_server, api_version=self.api_version)
 
         # init queues for workers
@@ -98,7 +100,7 @@ class EdrDataBridge(object):
                                      delay=self.delay)
 
         self.request_for_reference = partial(RequestForReference.spawn,
-                                             tenders_sync_client=self.tenders_sync_client,
+                                             dfs_client=self.dfs_client,
                                              reference_queue=self.reference_queue,
                                              request_db=self.request_db,
                                              services_not_available=self.services_not_available,
