@@ -1,4 +1,4 @@
-# coding=utf-8
+# -*- coding: utf-8 -*-
 
 
 class RequestsDb(object):
@@ -7,7 +7,7 @@ class RequestsDb(object):
         super(RequestsDb, self).__init__()
         self._db = db
 
-    def add_dfs_request(self, request_id, request_data):
+    def add_sfs_request(self, request_id, request_data):
         self._db.hmset(req_key(request_id), request_data)
         self._db.sadd("requests:pending", request_id)
 

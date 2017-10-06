@@ -15,5 +15,5 @@ class TestRequestsDb(BaseServersTest):
 
     def test_add_request(self):
         req_data = {"status": "pending", "tender_id": "111", "edr_id": "222"}
-        self.requests_db.add_dfs_request("1", req_data)
+        self.requests_db.add_sfs_request("1", req_data)
         self.assertEqual(self.redis.hgetall("requests:1"), req_data)

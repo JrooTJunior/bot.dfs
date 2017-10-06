@@ -23,6 +23,7 @@ from process_tracker import ProcessTracker
 from scanner import Scanner
 from request_for_reference import RequestForReference
 from requests_db import RequestsDb
+from requests_to_sfs import RequestsToSfs
 from caching import Db
 from filter_tender import FilterTenders
 from utils import journal_context, check_412
@@ -65,7 +66,6 @@ class EdrDataBridge(object):
 
         # init clients
         self.tenders_sync_client = TendersClientSync('', host_url=ro_api_server, api_version=self.api_version)
-        self.dfs_client = Client('http://obmen.sfs.gov.ua/SwinEd.asmx?WSDL')
         self.client = TendersClient(self.config_get('api_token'), host_url=api_server, api_version=self.api_version)
 
         # init queues for workers
@@ -80,6 +80,7 @@ class EdrDataBridge(object):
         self.db = Db(config)
         self.process_tracker = ProcessTracker(self.db, self.time_to_live)
         self.request_db = RequestsDb(self.db)
+        self.request_to_sfs = RequestsToSfs()
 
         # Workers
         self.scanner = partial(Scanner.spawn,
@@ -100,8 +101,8 @@ class EdrDataBridge(object):
                                      delay=self.delay)
 
         self.request_for_reference = partial(RequestForReference.spawn,
-                                             dfs_client=self.dfs_client,
                                              reference_queue=self.reference_queue,
+                                             request_to_sfs=self.request_to_sfs,
                                              request_db=self.request_db,
                                              services_not_available=self.services_not_available,
                                              sleep_change_value=self.sleep_change_value,
