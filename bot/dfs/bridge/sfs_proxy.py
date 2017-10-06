@@ -18,13 +18,13 @@ class SignProxy(object):
                                     "BufferEncoding": "windows-1251"})
 
 
-class DfsProxy(object):
-    """docstring for DfsProxy"""
+class SfsProxy(object):
+    """docstring for SfsProxy"""
 
     def __init__(self, url):
-        super(DfsProxy, self).__init__()
+        super(SfsProxy, self).__init__()
         self.url = url
 
     def send(self, content):
         client = Client(self.url)
-        return client.service.sign()
+        return client.service.sign(content)

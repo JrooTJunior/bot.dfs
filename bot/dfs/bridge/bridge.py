@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+from bot.dfs.bridge.sfs_worker import SfsWorker
 from gevent import monkey
 
 monkey.patch_all()
@@ -95,6 +96,8 @@ class EdrDataBridge(object):
                                      services_not_available=self.services_not_available,
                                      sleep_change_value=self.sleep_change_value,
                                      delay=self.delay)
+        #TODO
+        # self.sfs_reqs_worker = partial(SfsWorker.spawn, )
 
     def config_get(self, name):
         return self.config.get('main').get(name)

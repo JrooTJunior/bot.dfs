@@ -14,7 +14,6 @@ from restkit import RequestError
 
 class TestBridgeWorker(BaseServersTest):
     def test_init(self):
-        # import pdb;pdb.set_trace()
         self.worker = EdrDataBridge(config)
         self.assertEqual(self.worker.delay, config['main']['delay'])
         self.assertEqual(self.worker.sleep_change_value.time_between_requests, 0)
@@ -43,8 +42,7 @@ class TestBridgeWorker(BaseServersTest):
     def test_start_jobs(self):
         self.worker = EdrDataBridge(config)
 
-        scanner, filter_tender, edr_handler, upload_file_to_doc_service, upload_file_to_tender = \
-            [MagicMock(return_value=i) for i in range(5)]
+        scanner, filter_tender = [MagicMock(return_value=i) for i in range(2)]
         self.worker.scanner = scanner
         self.worker.filter_tender = filter_tender
 

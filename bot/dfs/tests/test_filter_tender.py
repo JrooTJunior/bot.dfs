@@ -110,19 +110,6 @@ class TestFilterWorker(unittest.TestCase):
     def bids(self, counter_id, edr_id):
         return {'id': self.bid_ids[counter_id], 'tenderers': [{'identifier': {'scheme': 'UA-EDR', 'id': edr_id}}]}
 
-    def check_data_objects(self, obj, example):
-        """Checks that two data objects are equal, 
-                  that Data.file_content.meta.id is not none and
-                  that Data.file_content.meta.author exists and is equal to IdentificationBot
-         """
-        self.assertEqual(obj.tender_id, example.tender_id)
-        self.assertEqual(obj.item_id, example.item_id)
-        self.assertEqual(obj.code, example.code)
-        self.assertEqual(obj.item_name, example.item_name)
-        self.assertIsNotNone(obj.file_content['meta']['id'])
-        self.assertEqual(obj.file_content['meta']['author'], author)
-        self.assertEqual(obj.file_content['meta']['sourceRequests'], example.file_content['meta']['sourceRequests'])
-
     def test_init(self):
         worker = FilterTenders.spawn(None, None, None, None, self.sna, self.sleep_change_value)
         self.assertGreater(datetime.datetime.now().isoformat(), worker.start_time.isoformat())
@@ -154,9 +141,8 @@ class TestFilterWorker(unittest.TestCase):
                                                  'tenderers': [{'identifier': {
                                                      'scheme': 'UA-ED',
                                                      'id': CODES[2]}}]}]}}))]
-        data = Data(self.tender_id, self.award_ids[0], CODES[0], 'awards',
-                    {'meta': {'sourceRequests': [self.request_ids[0]]}})
-        self.check_data_objects(self.edrpou_codes_queue.get(), data)
+        data = Data(self.tender_id, self.award_ids[0], CODES[0])
+        self.assertEqual(self.edrpou_codes_queue.get(), data)
         self.assertItemsEqual(self.process_tracker.processing_items.keys(),
                               [item_key(self.tender_id, self.award_ids[0])])
 
@@ -165,9 +151,8 @@ class TestFilterWorker(unittest.TestCase):
         """ We must not lose tender after restart filter worker """
         gevent_sleep.side_effect = custom_sleep
         self.client.request.side_effect = [Exception(), self.response]
-        data = Data(self.tender_id, self.award_ids[0], CODES[0], 'awards',
-                    {'meta': {'sourceRequests': [self.request_ids[0]]}})
-        self.check_data_objects(self.edrpou_codes_queue.get(), data)
+        data = Data(self.tender_id, self.award_ids[0], CODES[0])
+        self.assertEqual(self.edrpou_codes_queue.get(), data)
         self.assertEqual(self.worker.sleep_change_value.time_between_requests, 0)
         gevent_sleep.assert_called_with_once(1)
         self.assertItemsEqual(self.process_tracker.processing_items.keys(),
@@ -179,11 +164,10 @@ class TestFilterWorker(unittest.TestCase):
         """ We must not lose tender after restart filter worker """
         gevent_sleep.side_effect = custom_sleep
         self.client.request.side_effect = [ResourceError(http_code=429), self.response]
-        data = Data(self.tender_id, self.award_ids[0], CODES[0], 'awards',
-                    {'meta': {'sourceRequests': [self.request_ids[0]]}})
+        data = Data(self.tender_id, self.award_ids[0], CODES[0])
         self.sleep_change_value.increment_step = 2
         self.sleep_change_value.decrement_step = 1
-        self.check_data_objects(self.edrpou_codes_queue.get(), data)
+        self.assertEqual(self.edrpou_codes_queue.get(), data)
         self.assertEqual(self.worker.sleep_change_value.time_between_requests, 1)
         gevent_sleep.assert_called_with_once(1)
         self.assertItemsEqual(self.process_tracker.processing_items.keys(),
@@ -206,9 +190,8 @@ class TestFilterWorker(unittest.TestCase):
                                             'procurementMethodType': 'aboveThresholdEU',
                                             'awards': [self.awards(0, 0, AWARD_STATUS, CODES[0]),
                                                        self.awards(1, 1, 'unsuccessful', CODES[2])]}}))]
-        data = Data(self.tender_id, self.award_ids[0], CODES[0], 'awards',
-                    {'meta': {'sourceRequests': [self.request_ids[0]]}})
-        self.check_data_objects(self.edrpou_codes_queue.get(), data)
+        data = Data(self.tender_id, self.award_ids[0], CODES[0])
+        self.assertEqual(self.edrpou_codes_queue.get(), data)
         self.assertItemsEqual(self.process_tracker.processing_items.keys(),
                               [item_key(self.tender_id, self.award_ids[0])])
 
@@ -227,9 +210,8 @@ class TestFilterWorker(unittest.TestCase):
                                        'procurementMethodType': 'aboveThresholdEU',
                                        'awards': [self.awards(i, i, AWARD_STATUS, CODES[0])]}})) for i in range(2)]
         for i in range(2):
-            data = Data(self.tender_id, self.award_ids[i], CODES[0], 'awards',
-                        {'meta': {'sourceRequests': [self.request_ids[i]]}})
-            self.check_data_objects(self.edrpou_codes_queue.get(), data)
+            data = Data(self.tender_id, self.award_ids[i], CODES[0])
+            self.assertEqual(self.edrpou_codes_queue.get(), data)
         self.worker.immortal_jobs['prepare_data'].kill(timeout=1)
         self.assertItemsEqual(self.process_tracker.processing_items.keys(),
                               [item_key(self.tender_id, self.award_ids[i]) for i in range(2)])
@@ -240,10 +222,9 @@ class TestFilterWorker(unittest.TestCase):
         filtered_tender_ids_queue = MagicMock()
         filtered_tender_ids_queue.peek.side_effect = [LoopExit(), self.tender_id]
         self.client.request.return_value = self.response
-        first_data = Data(self.tender_id, self.award_ids[0], CODES[0], 'awards',
-                          {'meta': {'sourceRequests': [self.request_ids[0]]}})
+        first_data = Data(self.tender_id, self.award_ids[0], CODES[0])
         self.worker.filtered_tender_ids_queue = filtered_tender_ids_queue
-        self.check_data_objects(self.edrpou_codes_queue.get(), first_data)
+        self.assertEqual(self.edrpou_codes_queue.get(), first_data)
         self.assertItemsEqual(self.process_tracker.processing_items.keys(),
                               [item_key(self.tender_id, self.award_ids[0])])
 
@@ -269,9 +250,8 @@ class TestFilterWorker(unittest.TestCase):
                                            'status': 'cancelled',
                                            'suppliers': [{'identifier': {'scheme': 'UA-EDR', 'id': CODES[1]}}],
                                            'lotID': '123456789'}]}}))
-        data = Data(self.tender_id, self.award_ids[0], CODES[0], 'awards',
-                    {'meta': {'sourceRequests': [self.request_ids[0]]}})
-        self.check_data_objects(self.edrpou_codes_queue.get(), data)
+        data = Data(self.tender_id, self.award_ids[0], CODES[0])
+        self.assertEqual(self.edrpou_codes_queue.get(), data)
         self.assertItemsEqual(self.process_tracker.processing_items.keys(),
                               [item_key(self.tender_id, self.award_ids[0])])
 
@@ -305,8 +285,8 @@ class TestFilterWorker(unittest.TestCase):
         self.assertEqual(client.headers['Cookie'], 'SERVER_ID={}'.format(SPORE_COOKIES))
         worker = FilterTenders.spawn(client, filtered_tender_ids_queue, self.edrpou_codes_queue, self.process_tracker,
                                      MagicMock(), self.sleep_change_value)
-        data = Data('123', '124', CODES[0], 'awards', {'meta': {'sourceRequests': ['125']}})
-        self.check_data_objects(self.edrpou_codes_queue.get(), data)
+        data = Data('123', '124', CODES[0])
+        self.assertEqual(self.edrpou_codes_queue.get(), data)
         self.assertEqual(client.headers['Cookie'],  'SERVER_ID={}'.format(COOKIES_412))
         self.assertEqual(self.edrpou_codes_queue.qsize(), 0)
         self.assertItemsEqual(self.process_tracker.processing_items.keys(), ['123_124'])

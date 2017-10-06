@@ -81,12 +81,9 @@ class FilterTenders(BaseWorker):
         tender = loads(response.body_string())['data']
         for aw in active_award(tender):
             for code in get_codes(aw):
-                data = Data(tender['id'], aw['id'], code, "awards",
-                            {'meta': {'id': generate_doc_id(), 'author': author,
-                                      'sourceRequests': [response.headers['X-Request-ID']]}})
+                data = Data(tender['id'], aw['id'], code)
                 self.process_tracker.set_item(data.tender_id, data.item_id)
                 self.edrpou_codes_queue.put(data)
-                logger.info("PUT ITEM INTO LAST EXISTING QUEUE WAT DO")
             else:
                 logger.info('Tender {} bid {} award {} identifier schema isn\'t UA-EDR,.'.format(
                     tender['id'], aw['bid_id'], aw['id']),

@@ -103,17 +103,6 @@ class EndToEndTest(BaseServersTest):
         super(EndToEndTest, self).tearDown()
         self.redis.flushall()
 
-    def check_data_objects(self, obj, example):
-        self.assertEqual(obj.tender_id, example.tender_id)
-        self.assertEqual(obj.item_id, example.item_id)
-        self.assertEqual(obj.code, example.code)
-        self.assertEqual(obj.item_name, example.item_name)
-        self.assertIsNotNone(obj.file_content['meta']['id'])
-        if obj.file_content['meta'].get('author'):
-            self.assertEqual(obj.file_content['meta']['author'], author)
-        if obj.file_content['meta'].get('sourceRequests'):
-            self.assertEqual(obj.file_content['meta']['sourceRequests'], example.file_content['meta']['sourceRequests'])
-
     @patch('gevent.sleep')
     def test_scanner_and_filter(self, gevent_sleep):
         gevent_sleep.side_effect = custom_sleep
@@ -122,9 +111,9 @@ class EndToEndTest(BaseServersTest):
         setup_routing(self.api_server_bottle, get_tender_response, path='/api/2.3/tenders/123')
         self.worker.scanner()
         self.worker.filter_tender()
-        data = Data('123', award_ids[2], CODES[2], "awards", {'meta': {'sourceRequests': [request_ids[0]]}})
+        data = Data('123', award_ids[2], CODES[2])
         sleep(5)
         sleep_until_done(self.worker, is_working_filter)
         self.assertEqual(self.worker.edrpou_codes_queue.qsize(), 1)
-        self.check_data_objects(self.worker.edrpou_codes_queue.get(), data)
+        self.assertEqual(self.worker.edrpou_codes_queue.get(), data)
         self.assertEqual(self.worker.filtered_tender_ids_queue.qsize(), 0)

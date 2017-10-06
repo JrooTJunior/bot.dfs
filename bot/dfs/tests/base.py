@@ -5,6 +5,7 @@ import unittest
 
 from time import sleep
 
+from bot.dfs.bridge.caching import Db
 from bottle import Bottle, response, request
 from gevent.pywsgi import WSGIServer
 from redis import StrictRedis
@@ -45,6 +46,7 @@ class BaseServersTest(unittest.TestCase):
                                               str(config['main']['cache_port']), '--logfile /dev/null'])
         sleep(0.1)
         cls.redis = StrictRedis(port=str(config['main']['cache_port']))
+        cls.db = Db(config)
 
         # start servers
         cls.api_server.start()
