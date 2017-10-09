@@ -1,4 +1,4 @@
-# coding=utf-8
+# -*- coding: utf-8 -*-
 from base import BaseServersTest
 from bot.dfs.bridge.requests_db import RequestsDb
 

@@ -32,7 +32,7 @@ class TestRequestForReferenceWorker(BaseServersTest):
                                                 self.sleep_change_value)
 
     def tearDown(self):
-        self.redis.flushall()
+        # self.redis.flushall()
         super(TestRequestForReferenceWorker, self).tearDown()
 
     def test_init(self):
@@ -49,3 +49,11 @@ class TestRequestForReferenceWorker(BaseServersTest):
     def test_worker(self, gevent_sleep):
         gevent_sleep.side_effect = custom_sleep
         self.assertEqual(self.reference_queue.qsize(), 0)
+
+    @patch('gevent.sleep')
+    def test_sfs_checker(self, gevent_sleep):
+        gevent_sleep.side_effect = custom_sleep
+        for request_id, request_data in self.request_ids.items():
+            edr_id = request_data['edr_id']
+            self.assertEqual(self.reference_queue.qsize(), 0)
+

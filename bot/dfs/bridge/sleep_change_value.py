@@ -1,4 +1,4 @@
-# coding=utf-8
+# -*- coding: utf-8 -*-
 class APIRateController(object):
     def __init__(self, increment_step=1, decrement_step=1):
         self.increment_step = increment_step
