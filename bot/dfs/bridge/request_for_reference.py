@@ -36,31 +36,34 @@ class RequestForReference(BaseWorker):
             request_ids = self.request_db.get_pending_requests()
             for request_id, request_data in request_ids.items():
                 edr_id = request_data['edr_id']
-                ca_name = ""
-                cert = ""
+                ca_name = ''
                 if business_date_checker():
                     try:
-                        sfs_check = self.request_to_sfs.sfs_check_request(edr_id)
+                        cert = self.request_to_sfs.sfs_get_certificate_request(ca_name)
                     except Exception as e:
-                        logger.warning('Fail to check for incoming correspondence. Message {}'.format(e.message))
+                        logger.warning('Fail to get certificate. Message {}'.format(e.message))
                         sleep()
                     else:
-                        quantity_of_docs = sfs_check['qtDocs']
-                        if quantity_of_docs != 0:
-                            self.sfs_receiver(request_id, edr_id, ca_name, cert)
+                        try:
+                            quantity_of_docs = self.request_to_sfs.sfs_check_request(edr_id)
+                        except Exception as e:
+                            logger.warning('Fail to check for incoming correspondence. Message {}'.format(e.message))
+                            sleep()
+                        else:
+                            if quantity_of_docs != 0:
+                                self.sfs_receiver(request_id, edr_id, ca_name, cert)
 
     def sfs_receiver(self, request_id, edr_id, ca_name, cert):
         """Get documents from SFS, put request id with received documents to queue"""
         try:
-            sfs_receive = self.request_to_sfs.sfs_receive_request(edr_id, ca_name, cert)
+            received_docs = self.request_to_sfs.sfs_receive_request(edr_id, ca_name, cert)
         except Exception as e:
             logger.warning('Fail to check for incoming correspondence. Message {}'.format(e.message))
             sleep()
         else:
-            sfs_received_docs = sfs_receive['docs']
             try:
                 logger.info('Put request_id {} to process...'.format(request_id))
-                self.reference_queue.put((request_id, sfs_received_docs))
+                self.reference_queue.put((request_id, received_docs))
             except Exception as e:
                 logger.exception("Message: {}".format(e.message))
             else:

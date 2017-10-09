@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
-import json
-from zeep import Client, helpers
+from zeep import Client
 
 
 class RequestsToSfs(object):
@@ -9,15 +8,16 @@ class RequestsToSfs(object):
         self.sfs_client = Client('http://obmen.sfs.gov.ua/SwinEd.asmx?WSDL')
 
     def sfs_check_request(self, edr_id):
-        sfs_check = self.sfs_client.service.Check(recipientEDRPOU=edr_id)
-        sfs_check_to_dict = soap_to_dict(sfs_check)
-        return sfs_check_to_dict
+        sfs_check = self.sfs_client.service.Check(recipientEDRPOU=edr_id, recipientDept=0, procAllDepts=1)
+        qtDocs = sfs_check.qtDocs
+        return qtDocs
 
     def sfs_receive_request(self, edr_id, ca_name, cert):
         sfs_receive = self.sfs_client.service.Receive(recipientEDRPOU=edr_id, caName=ca_name, cert=cert)
-        sfs_receive_to_dict = soap_to_dict(sfs_receive)
-        return sfs_receive_to_dict
+        docs = sfs_receive.docs
+        return docs
 
-
-def soap_to_dict(soap_object):
-    return json.loads(json.dumps(helpers.serialize_object(soap_object)))
+    def sfs_get_certificate_request(self, ca_name):
+        sfs_get_certificate = self.sfs_client.service.GetCertificate(caName=ca_name)
+        cert = sfs_get_certificate.certs.Certificate[0].cert
+        return cert
