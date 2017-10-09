@@ -38,7 +38,7 @@ class RequestForReference(BaseWorker):
                 edr_id = request_data['edr_id']
                 ca_name = ""
                 cert = ""
-                if business_date_checker:
+                if business_date_checker():
                     try:
                         sfs_check = self.request_to_sfs.sfs_check_request(edr_id)
                     except Exception as e:
