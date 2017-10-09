@@ -1,12 +1,10 @@
 # -*- coding: utf-8 -*-
-import io
-import yaml
-
+from datetime import datetime, time
 from copy import deepcopy, copy
 from logging import getLogger
 from uuid import uuid4
 
-from constants import version, qualification_procurementMethodType, tender_status, DOC_TYPE, AWARD_STATUS
+from constants import version, qualification_procurementMethodType, tender_status, DOC_TYPE, AWARD_STATUS, TZ, HOLIDAYS
 from restkit import ResourceError
 from simplejson import JSONDecodeError
 
@@ -127,3 +125,15 @@ def more_tenders(params, response):
 def valid_qualification_tender(tender):
     return (tender['status'] == tender_status and
             tender['procurementMethodType'] in qualification_procurementMethodType)
+
+
+def business_date_checker():
+    current_date = datetime.now(TZ)
+    if current_date.weekday() in [5, 6] and HOLIDAYS.get(current_date.date().isoformat(), True) or HOLIDAYS.get(
+            current_date.date().isoformat(), False):
+        return False
+    else:
+        if time(9, 0) <= current_date.time() <= time(18, 0):
+            return True
+        else:
+            return False

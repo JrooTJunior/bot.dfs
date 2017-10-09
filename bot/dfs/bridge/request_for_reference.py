@@ -6,14 +6,17 @@ monkey.patch_all()
 import logging.config
 from datetime import datetime
 from gevent import spawn, sleep
+
 from base_worker import BaseWorker
+from utils import business_date_checker
 
 logger = logging.getLogger(__name__)
 
 
 class RequestForReference(BaseWorker):
     """ Edr API Data Bridge """
-    def __init__(self, reference_queue, request_to_sfs, request_db, services_not_available, sleep_change_value, delay=15):
+    def __init__(self, reference_queue, request_to_sfs, request_db, services_not_available, sleep_change_value,
+                 delay=15):
         super(RequestForReference, self).__init__(services_not_available)
         self.start_time = datetime.now()
         self.delay = delay
@@ -33,25 +36,23 @@ class RequestForReference(BaseWorker):
             request_ids = self.request_db.get_pending_requests()
             for request_id, request_data in request_ids.items():
                 edr_id = request_data['edr_id']
-                dept_id = 1
-                depts_proc = 1
                 ca_name = ""
                 cert = ""
-                if self.date_checker:
+                if business_date_checker:
                     try:
-                        sfs_check = self.request_to_sfs.sfs_check_request(edr_id, dept_id, depts_proc)
+                        sfs_check = self.request_to_sfs.sfs_check_request(edr_id)
                     except Exception as e:
                         logger.warning('Fail to check for incoming correspondence. Message {}'.format(e.message))
                         sleep()
                     else:
                         quantity_of_docs = sfs_check['qtDocs']
                         if quantity_of_docs != 0:
-                            self.sfs_receiver(request_id, edr_id, dept_id, depts_proc, ca_name, cert)
+                            self.sfs_receiver(request_id, edr_id, ca_name, cert)
 
-    def sfs_receiver(self, request_id, edr_id, dept_id, depts_proc, ca_name, cert):
+    def sfs_receiver(self, request_id, edr_id, ca_name, cert):
         """Get documents from SFS, put request id with received documents to queue"""
         try:
-            sfs_receive = self.request_to_sfs.sfs_receive_request(edr_id, dept_id, depts_proc, ca_name, cert)
+            sfs_receive = self.request_to_sfs.sfs_receive_request(edr_id, ca_name, cert)
         except Exception as e:
             logger.warning('Fail to check for incoming correspondence. Message {}'.format(e.message))
             sleep()
@@ -65,10 +66,6 @@ class RequestForReference(BaseWorker):
             else:
                 logger.info(
                     'Received docs with request_id {} is already in process or was processed.'.format(request_id))
-
-    def date_checker(self):
-        """Check if the working time is now or not"""
-        return True
 
     def _start_jobs(self):
         return {'sfs_checker': spawn(self.sfs_checker)}

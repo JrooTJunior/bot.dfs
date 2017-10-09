@@ -8,7 +8,7 @@ import time
 from mock import MagicMock
 from bot.dfs.bridge.caching import Db, db_key
 from bot.dfs.bridge.process_tracker import ProcessTracker
-from bot.dfs.bridge.utils import item_key, check_412
+from bot.dfs.bridge.utils import item_key, check_412, business_date_checker
 from redis import StrictRedis
 from restkit import ResourceError
 
@@ -127,3 +127,6 @@ class TestUtils(TestCase):
             func(MagicMock(headers={'Cookie': 1}))
         f = check_412(MagicMock(side_effect=[1]))
         self.assertEqual(f(1), 1)
+
+    def test_business_date_checker(self):
+        business_date_checker()

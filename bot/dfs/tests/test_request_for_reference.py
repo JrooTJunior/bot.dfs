@@ -14,7 +14,6 @@ from bot.dfs.bridge.sleep_change_value import APIRateController
 from bot.dfs.bridge.requests_db import RequestsDb
 from bot.dfs.bridge.requests_to_sfs import RequestsToSfs
 from utils import custom_sleep
-from zeep import Client, helpers
 
 
 class TestRequestForReferenceWorker(BaseServersTest):
@@ -46,9 +45,7 @@ class TestRequestForReferenceWorker(BaseServersTest):
         self.assertEqual(self.worker.delay, 15)
         self.assertEqual(self.worker.exit, False)
 
-    # @patch('gevent.sleep')
-    # def test_sfs_check(self, gevent_sleep):
-    #     gevent_sleep.side_effect = custom_sleep
-    #     self.request_ids = self.request_db.get_pending_requests()
-    #     for request_id, request_data in self.request_ids.items():
-    #         self.assertEqual(self.reference_queue.get(), (request_id, sfs_received_docs))
+    @patch('gevent.sleep')
+    def test_worker(self, gevent_sleep):
+        gevent_sleep.side_effect = custom_sleep
+        self.assertEqual(self.reference_queue.qsize(), 0)
