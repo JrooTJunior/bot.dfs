@@ -8,7 +8,7 @@ class RequestsToSfs(object):
         self.sfs_client = Client('http://obmen.sfs.gov.ua/SwinEd.asmx?WSDL')
 
     def sfs_check_request(self, edr_id):
-        sfs_check = self.sfs_client.service.Check(recipientEDRPOU=edr_id, recipientDept=0, procAllDepts=1)
+        sfs_check = self.sfs_client.service.Check(recipientEDRPOU=edr_id)
         qtDocs = sfs_check.qtDocs
         return qtDocs
 
