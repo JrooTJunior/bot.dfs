@@ -1,7 +1,8 @@
 # -*- coding: utf-8 -*-
 from json import dumps
-from uuid import uuid4
 from time import sleep
+from uuid import uuid4
+
 from gevent import sleep as gsleep
 
 
@@ -36,7 +37,6 @@ class ResponseMock(object):
 
     def next(self):
         pass
-
 
 
 class AlmostAlwaysFalse(object):

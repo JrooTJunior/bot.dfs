@@ -1,4 +1,6 @@
+# coding=utf-8
 from gevent import monkey, sleep
+
 monkey.patch_all()
 
 from base_worker import BaseWorker
@@ -6,7 +8,6 @@ from datetime import datetime
 
 
 class SfsWorker(BaseWorker):
-
     def __init__(self, sfs_client, sfs_reqs_queue, process_tracker, redis_db,
                  services_not_available, sleep_change_value, delay=15):
         super(SfsWorker, self).__init__(services_not_available)

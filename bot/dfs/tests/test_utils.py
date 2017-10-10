@@ -1,16 +1,20 @@
 # -*- coding: utf-8 -*-
-import os
 import subprocess
+import time
 from unittest import TestCase
 
-import time
+import os
 
-from mock import MagicMock
 from bot.dfs.bridge.caching import Db, db_key
+from bot.dfs.bridge.constants import FORM_NAME
 from bot.dfs.bridge.process_tracker import ProcessTracker
-from bot.dfs.bridge.utils import item_key, check_412
+from bot.dfs.bridge.utils import check_412, item_key, to_base36, sfs_file_name
+from hypothesis import given
+from hypothesis.strategies import integers, datetimes
+from mock import MagicMock, patch
 from redis import StrictRedis
 from restkit import ResourceError
+from datetime import datetime
 
 config = {
     "main": {
@@ -127,3 +131,18 @@ class TestUtils(TestCase):
             func(MagicMock(headers={'Cookie': 1}))
         f = check_412(MagicMock(side_effect=[1]))
         self.assertEqual(f(1), 1)
+
+    @given(integers())
+    def test_to_base36(self, input):
+        self.assertEqual(to_base36(11), "B")
+        self.assertEqual(to_base36(35), "Z")
+        self.assertEqual(to_base36(36), "10")
+        to_base36(input)
+
+    @patch("bot.dfs.bridge.utils.datetime")
+    @given(integers(), datetimes())
+    def test_file_name(self, datetime_mock, edr_code, h_date):
+        datetime_mock.now = MagicMock(return_value=h_date)
+        sample_name = "ieK{}{}{}{}{}1.xml".format(edr_code, FORM_NAME, to_base36(h_date.month),
+                                                  to_base36(h_date.day), h_date.year)
+        self.assertEqual(sample_name, sfs_file_name(edr_code, 1))

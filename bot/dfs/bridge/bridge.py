@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-from bot.dfs.bridge.sfs_worker import SfsWorker
 from gevent import monkey
 
 monkey.patch_all()
@@ -15,19 +14,16 @@ from yaml import load
 from gevent import event
 from gevent.queue import Queue
 from retrying import retry
-from restkit import request, RequestError, ResourceError
-from requests import RequestException
+from restkit import RequestError, ResourceError
 from constants import retry_mult
 
 from openprocurement_client.client import TendersClientSync as BaseTendersClientSync, TendersClient as BaseTendersClient
-from bot.dfs.client import DocServiceClient, ProxyClient
 from process_tracker import ProcessTracker
 from scanner import Scanner
 from caching import Db
 from filter_tender import FilterTenders
 from utils import journal_context, check_412
-from journal_msg_ids import (DATABRIDGE_RESTART_WORKER, DATABRIDGE_START, DATABRIDGE_DOC_SERVICE_CONN_ERROR,
-                             DATABRIDGE_PROXY_SERVER_CONN_ERROR)
+from journal_msg_ids import (DATABRIDGE_RESTART_WORKER, DATABRIDGE_START, DATABRIDGE_DOC_SERVICE_CONN_ERROR)
 
 from sleep_change_value import APIRateController
 
@@ -96,7 +92,7 @@ class EdrDataBridge(object):
                                      services_not_available=self.services_not_available,
                                      sleep_change_value=self.sleep_change_value,
                                      delay=self.delay)
-        #TODO
+        # TODO
         # self.sfs_reqs_worker = partial(SfsWorker.spawn, )
 
     def config_get(self, name):

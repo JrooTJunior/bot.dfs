@@ -1,14 +1,14 @@
 # coding=utf-8
-import os
 import subprocess
 import unittest
+import os
 
 from time import sleep
-
-from bot.dfs.bridge.caching import Db
-from bottle import Bottle, response, request
+from bottle import Bottle, request, response
 from gevent.pywsgi import WSGIServer
 from redis import StrictRedis
+
+from bot.dfs.bridge.caching import Db
 
 config = {
     'main':

@@ -1,7 +1,8 @@
 # coding=utf-8
+from uuid import uuid4
+
 from base import BaseServersTest
 from bot.dfs.bridge.requests_db import RequestsDb, award_key
-from uuid import uuid4
 
 
 class TestRequestsDb(BaseServersTest):
@@ -18,7 +19,7 @@ class TestRequestsDb(BaseServersTest):
         req_data = {"status": "pending", "tender_id": "111", "edr_code": "222"}
         self.requests_db.add_dfs_request("1", req_data)
         self.assertEqual(self.redis.hgetall("requests:1"), req_data)
-        self.assertEqual(self.redis.smembers("requests:pending"), set("1",))
+        self.assertEqual(self.redis.smembers("requests:pending"), set("1", ))
 
     def test_get_pending_requests(self):
         req_data = {"status": "pending", "tender_id": "111", "edr_code": "222"}
@@ -45,5 +46,3 @@ class TestRequestsDb(BaseServersTest):
         for i in xrange(4):
             self.assertEqual([reqs_to_add.keys()[i]],
                              self.requests_db.recent_requests_with(reqs_to_add.values()[i]['edr_code']))
-
-

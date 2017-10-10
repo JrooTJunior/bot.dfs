@@ -3,7 +3,6 @@ from time import time
 
 
 class RequestsDb(object):
-
     def __init__(self, db, time_range=1000):
         super(RequestsDb, self).__init__()
         self.time_range = time_range
@@ -14,7 +13,6 @@ class RequestsDb(object):
         self._db.sadd("requests:pending", request_id)
         self._db.sadd("requests:edrpou:{}".format(request_data['edr_code']), request_id)
         self._db.zadd("requests:dates", time(), request_id)
-
 
     def get_pending_requests(self):
         return {key: self._get_request(key) for key in self._db.smembers("requests:pending")}
@@ -32,8 +30,11 @@ class RequestsDb(object):
 
     def recent_requests_with(self, edr_code):
         self._db.zinterstore("recent:requests:edrpou:{}".format(edr_code), ("requests:edrpou:{}".format(edr_code),
-                             "requests:dates"))
+                                                                            "requests:dates"))
         return self._db.zrangebyscore("recent:requests:edrpou:{}".format(edr_code), time() - self.time_range, time())
+
+    def add_daily_request(self):
+        self._db.incr("requests:number")
 
 
 def award_key(tender_id, award_id):

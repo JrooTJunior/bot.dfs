@@ -18,7 +18,7 @@ from bottle import Bottle, response
 from simplejson import dumps
 from gevent import event
 
-from bot.dfs.bridge.constants import author, tender_status, AWARD_STATUS
+from bot.dfs.bridge.constants import tender_status, AWARD_STATUS
 from bot.dfs.bridge.filter_tender import FilterTenders
 from bot.dfs.bridge.utils import item_key
 from bot.dfs.bridge.process_tracker import ProcessTracker
@@ -287,7 +287,7 @@ class TestFilterWorker(unittest.TestCase):
                                      MagicMock(), self.sleep_change_value)
         data = Data('123', '124', CODES[0])
         self.assertEqual(self.edrpou_codes_queue.get(), data)
-        self.assertEqual(client.headers['Cookie'],  'SERVER_ID={}'.format(COOKIES_412))
+        self.assertEqual(client.headers['Cookie'], 'SERVER_ID={}'.format(COOKIES_412))
         self.assertEqual(self.edrpou_codes_queue.qsize(), 0)
         self.assertItemsEqual(self.process_tracker.processing_items.keys(), ['123_124'])
         worker.shutdown()

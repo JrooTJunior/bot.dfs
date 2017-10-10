@@ -13,7 +13,7 @@ from mock import patch
 from bottle import response, request
 
 from base import BaseServersTest, config
-from bot.dfs.bridge.constants import author, version, tender_status, AWARD_STATUS
+from bot.dfs.bridge.constants import tender_status, AWARD_STATUS
 from bot.dfs.bridge.sleep_change_value import APIRateController
 from bot.dfs.bridge.process_tracker import ProcessTracker
 from bot.dfs.bridge.data import Data
@@ -21,8 +21,8 @@ from bot.dfs.bridge.bridge import EdrDataBridge
 from utils import custom_sleep, generate_request_id, sleep_until_done, is_working_filter
 
 CODES = ('14360570', '0013823', '23494714')
-award_ids = [uuid.uuid4().hex for i in range(5)]
-request_ids = [generate_request_id() for i in range(2)]
+award_ids = [uuid.uuid4().hex for _ in range(5)]
+request_ids = [generate_request_id() for _ in range(2)]
 bid_ids = [uuid.uuid4().hex for _ in range(5)]
 
 s = 0

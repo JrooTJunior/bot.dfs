@@ -10,5 +10,6 @@ scheme = u'UA-EDR'
 tender_status = "active.qualification"
 DOC_TYPE = "sfsConfirmation"
 AWARD_STATUS = 'active'
+FORM_NAME = "Jxxxxxxx"
 qualification_procurementMethodType = ('aboveThresholdUA', 'aboveThresholdUA.defense', 'aboveThresholdEU',
                                        'competitiveDialogueUA.stage2', 'competitiveDialogueEU.stage2')

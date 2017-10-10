@@ -1,15 +1,12 @@
 # -*- coding: utf-8 -*-
 import os
 
-from gevent import killall
-from mock import patch, MagicMock
-from bot.dfs.client import DocServiceClient, ProxyClient
-from bot.dfs.bridge.bridge import EdrDataBridge
 from base import BaseServersTest, config
-from utils import custom_sleep, AlmostAlwaysTrue
-from openprocurement_client.client import TendersClientSync, TendersClient
-from requests import RequestException
+from bot.dfs.bridge.bridge import EdrDataBridge
+from mock import MagicMock, patch
+from openprocurement_client.client import TendersClient, TendersClientSync
 from restkit import RequestError
+from utils import AlmostAlwaysTrue, custom_sleep
 
 
 class TestBridgeWorker(BaseServersTest):

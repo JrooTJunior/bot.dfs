@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-from functools import partial
 
 from gevent import monkey
 
@@ -10,16 +9,14 @@ import gevent
 from datetime import datetime
 from gevent import spawn
 from gevent.hub import LoopExit
-from munch import munchify
 from simplejson import loads
 
 from utils import (
-    generate_req_id, journal_context, generate_doc_id, should_process_item, is_code_invalid, item_id, journal_item_name,
-)
+    generate_req_id, journal_context, is_code_invalid, )
 from data import Data
 from base_worker import BaseWorker
-from journal_msg_ids import DATABRIDGE_GET_TENDER_FROM_QUEUE, DATABRIDGE_TENDER_PROCESS, DATABRIDGE_TENDER_NOT_PROCESS
-from constants import author, scheme
+from journal_msg_ids import DATABRIDGE_TENDER_NOT_PROCESS
+from constants import scheme
 
 logger = logging.getLogger(__name__)
 
@@ -58,7 +55,6 @@ class FilterTenders(BaseWorker):
                                                                                 tender_id),
                                                             headers={'X-Client-Request-ID': generate_req_id()})
             except Exception as e:
-
                 if getattr(e, "status_int", False) == 429:
                     self.sleep_change_value.increment()
                     logger.info("Waiting tender {} for sleep_change_value: {} seconds".format(
@@ -92,7 +88,8 @@ class FilterTenders(BaseWorker):
             break
         else:
             logger.info('Tender {} is already in process or was processed.'.format(tender['id']),
-                extra=journal_context({"MESSAGE_ID": DATABRIDGE_TENDER_NOT_PROCESS}, {"TENDER_ID": tender['id']}))
+                        extra=journal_context({"MESSAGE_ID": DATABRIDGE_TENDER_NOT_PROCESS},
+                                              {"TENDER_ID": tender['id']}))
 
     def _start_jobs(self):
         return {'prepare_data': spawn(self.prepare_data)}
