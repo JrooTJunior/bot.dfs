@@ -22,7 +22,6 @@ class RequestForReference(BaseWorker):
         self.delay = delay
         self.request_to_sfs = request_to_sfs
         self.request_db = request_db
-        self.request_ids = {}
 
         # init queues for workers
         self.reference_queue = reference_queue
@@ -34,11 +33,11 @@ class RequestForReference(BaseWorker):
         """Get request ids from redis, check date, check quantity of documents"""
         while not self.exit:
             self.services_not_available.wait()
-            self.request_ids = self.request_db.get_pending_requests()
-            for request_id, request_data in self.request_ids.items():
-                edr_id = request_data['edr_id']
-                ca_name = ''
-                if business_date_checker():
+            if business_date_checker():
+                request_ids = self.request_db.get_pending_requests()
+                for request_id, request_data in request_ids.items():
+                    edr_code = request_data['edr_code']
+                    ca_name = ''
                     try:
                         cert = self.request_to_sfs.sfs_get_certificate_request(ca_name)
                     except Exception as e:
@@ -46,18 +45,18 @@ class RequestForReference(BaseWorker):
                         sleep()
                     else:
                         try:
-                            quantity_of_docs = self.request_to_sfs.sfs_check_request(edr_id)
+                            quantity_of_docs = self.request_to_sfs.sfs_check_request(edr_code)
                         except Exception as e:
                             logger.warning('Fail to check for incoming correspondence. Message {}'.format(e.message))
                             sleep()
                         else:
-                            if quantity_of_docs != 0:
-                                self.sfs_receiver(request_id, edr_id, ca_name, cert)
+                            if int(quantity_of_docs) == 0:
+                                self.sfs_receiver(request_id, edr_code, ca_name, cert)
 
-    def sfs_receiver(self, request_id, edr_id, ca_name, cert):
+    def sfs_receiver(self, request_id, edr_code, ca_name, cert):
         """Get documents from SFS, put request id with received documents to queue"""
         try:
-            received_docs = self.request_to_sfs.sfs_receive_request(edr_id, ca_name, cert)
+            received_docs = self.request_to_sfs.sfs_receive_request(edr_code, ca_name, cert)
         except Exception as e:
             logger.warning('Fail to check for incoming correspondence. Message {}'.format(e.message))
             sleep()

@@ -7,13 +7,13 @@ class RequestsToSfs(object):
         super(RequestsToSfs, self).__init__()
         self.sfs_client = Client('http://obmen.sfs.gov.ua/SwinEd.asmx?WSDL')
 
-    def sfs_check_request(self, edr_id):
-        sfs_check = self.sfs_client.service.Check(recipientEDRPOU=edr_id, recipientDept=1, procAllDepts=1)
+    def sfs_check_request(self, edr_code):
+        sfs_check = self.sfs_client.service.Check(recipientEDRPOU=edr_code, recipientDept=1, procAllDepts=1)
         qtDocs = sfs_check.qtDocs
         return qtDocs
 
-    def sfs_receive_request(self, edr_id, ca_name, cert):
-        sfs_receive = self.sfs_client.service.Receive(recipientEDRPOU=edr_id, recipientDept=1, procAllDepts=1,
+    def sfs_receive_request(self, edr_code, ca_name, cert):
+        sfs_receive = self.sfs_client.service.Receive(recipientEDRPOU=edr_code, recipientDept=1, procAllDepts=1,
                                                       caName=ca_name, cert=cert)
         docs = sfs_receive.docs
         return docs

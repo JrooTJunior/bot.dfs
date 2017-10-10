@@ -22,7 +22,7 @@ class TestRequestForReferenceWorker(BaseServersTest):
         self.sleep_change_value = APIRateController()
         self.request_db = RequestsDb(self.redis)
         self.request_to_sfs = RequestsToSfs()
-        self.request_ids = {'req1': {'edr_id': '14360570'}, 'req2': {'edr_id': '0013823'}}
+        self.request_ids = {'req1': {'edr_code': '14360570'}, 'req2': {'edr_code': '0013823'}}
         for key, value in self.request_ids.items():
             self.request_db.add_sfs_request(key, value)
         self.reference_queue = Queue(10)
@@ -32,7 +32,7 @@ class TestRequestForReferenceWorker(BaseServersTest):
                                                 self.sleep_change_value)
 
     def tearDown(self):
-        # self.redis.flushall()
+        self.redis.flushall()
         super(TestRequestForReferenceWorker, self).tearDown()
 
     def test_init(self):
@@ -53,7 +53,5 @@ class TestRequestForReferenceWorker(BaseServersTest):
     @patch('gevent.sleep')
     def test_sfs_checker(self, gevent_sleep):
         gevent_sleep.side_effect = custom_sleep
-        for request_id, request_data in self.request_ids.items():
-            edr_id = request_data['edr_id']
-            self.assertEqual(self.reference_queue.qsize(), 0)
+        self.assertEqual(self.reference_queue.qsize(), 0)
 

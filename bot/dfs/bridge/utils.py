@@ -56,34 +56,9 @@ def check_412(func):
     return func_wrapper
 
 
-def get_res_json(response):
-    try:
-        return response.json()
-    except JSONDecodeError:
-        return response.text
-
-
 def is_no_document_in_edr(response, res_json):
     return (response.status_code == 404 and isinstance(res_json, dict)
             and res_json.get('errors')[0].get('description')[0].get('error').get('code') == u"notFound")
-
-
-def is_payment_required(response):
-    return (response.status_code == 403 and response.headers.get('content-type', '') == 'application/json'
-            and (response.json().get('errors')[0].get('description') ==
-                 [{'message': 'Payment required.', 'code': 5}]))
-
-
-def fill_data_list(response, tender_data, data_list):
-    for i, obj in enumerate(response.json()['data']):
-        document_id = check_add_suffix(response.json()['data'], tender_data.doc_id(), i + 1)
-        file_content = {'meta': {'sourceDate': response.json()['meta']['detailsSourceDate'][i]}, 'data': obj}
-        file_content['meta'].update(deepcopy(tender_data.file_content['meta']))
-        file_content['meta'].update({"version": version})
-        file_content['meta']['id'] = document_id
-        data = copy(tender_data)
-        data.file_content = file_content
-        data_list.append(data)
 
 
 def should_process_item(item):
