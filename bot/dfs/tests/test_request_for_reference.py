@@ -32,8 +32,9 @@ class TestRequestForReferenceWorker(BaseServersTest):
                                                 self.sleep_change_value)
 
     def tearDown(self):
+        self.worker.shutdown()
+        del self.worker
         self.redis.flushall()
-        super(TestRequestForReferenceWorker, self).tearDown()
 
     def test_init(self):
         self.assertGreater(datetime.datetime.now().isoformat(), self.worker.start_time.isoformat())
@@ -53,5 +54,6 @@ class TestRequestForReferenceWorker(BaseServersTest):
     @patch('gevent.sleep')
     def test_sfs_checker(self, gevent_sleep):
         gevent_sleep.side_effect = custom_sleep
-        self.assertEqual(self.reference_queue.qsize(), 0)
+        sleep(1)
+        self.assertEqual(self.reference_queue.qsize(), 3)
 
