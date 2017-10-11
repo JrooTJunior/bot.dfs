@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 from unittest import TestCase
 
-from bot.dfs.client import ProxyClient, DocServiceClient
+from bot.dfs.client import ProxyClient
 
 
 class TestClient(TestCase):
@@ -22,9 +22,3 @@ class TestClient(TestCase):
 
     def test_verify(self):
         pass
-
-    def test_doc_service_client_init(self):
-        doc_client = DocServiceClient(self.host, self.user, self.password, port=6555, timeout=None)
-        self.assertEqual(doc_client.user, self.user)
-        self.assertEqual(doc_client.password, self.password)
-        self.assertEqual(doc_client.url, "{}:{}/upload".format(self.host, 6555))

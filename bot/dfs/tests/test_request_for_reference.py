@@ -54,6 +54,5 @@ class TestRequestForReferenceWorker(BaseServersTest):
     @patch('gevent.sleep')
     def test_sfs_checker(self, gevent_sleep):
         gevent_sleep.side_effect = custom_sleep
-        sleep(1)
-        self.assertEqual(self.reference_queue.qsize(), 1)
+        self.assertEqual(self.reference_queue.get(), ('req2', None))
 
