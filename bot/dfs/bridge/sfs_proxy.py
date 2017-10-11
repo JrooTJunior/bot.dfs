@@ -15,3 +15,6 @@ class SignProxy(object):
                                     "Id": "sign1",
                                     "BufferInB64": "dGVzdCBidWZmZXIt8uXx8g==",
                                     "BufferEncoding": "windows-1251"})
+
+
+# def SfsClient()

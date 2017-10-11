@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+from bot.dfs.bridge.sfs_worker import SfsWorker
 from gevent import monkey
 
 monkey.patch_all()
@@ -63,15 +64,18 @@ class EdrDataBridge(object):
         self.sleep_change_value = APIRateController(self.increment_step, self.decrement_step)
         self.sandbox_mode = os.environ.get('SANDBOX_MODE', 'False')
         self.time_to_live = self.config_get('time_to_live') or 300
+        self.time_range = self.config_get('time_range') or 0
 
         # init clients
         self.tenders_sync_client = TendersClientSync('', host_url=ro_api_server, api_version=self.api_version)
         self.client = TendersClient(self.config_get('api_token'), host_url=api_server, api_version=self.api_version)
+        # self.sfs_client =
 
         # init queues for workers
         self.filtered_tender_ids_queue = Queue(maxsize=buffers_size)  # queue of tender IDs with appropriate status
         self.edrpou_codes_queue = Queue(maxsize=buffers_size)  # queue with edrpou codes (Data objects stored in it)
         self.reference_queue = Queue(maxsize=buffers_size)  # queue of request IDs and documents
+        self.upload_to_api_queue = Queue(maxsize=buffers_size)  # queue with data to upload back into central DB
 
         # blockers
         self.initialization_event = event.Event()
@@ -79,7 +83,7 @@ class EdrDataBridge(object):
         self.services_not_available.set()
         self.db = Db(config)
         self.process_tracker = ProcessTracker(self.db, self.time_to_live)
-        self.request_db = RequestsDb(self.db)
+        self.request_db = RequestsDb(self.db, self.time_range)
         self.request_to_sfs = RequestsToSfs()
 
         # Workers
@@ -99,8 +103,15 @@ class EdrDataBridge(object):
                                      services_not_available=self.services_not_available,
                                      sleep_change_value=self.sleep_change_value,
                                      delay=self.delay)
-        # TODO
-        # self.sfs_reqs_worker = partial(SfsWorker.spawn, )
+
+        self.sfs_reqs_worker = partial(SfsWorker.spawn, sfs_client=self.request_to_sfs,
+                                       sfs_reqs_queue=self.edrpou_codes_queue,
+                                       upload_to_api_queue=self.upload_to_api_queue,
+                                       process_tracker=self.process_tracker,
+                                       redis_db=self.request_db,
+                                       services_not_available=self.services_not_available,
+                                       sleep_change_value=self.sleep_change_value,
+                                       delay=15)
 
         self.request_for_reference = partial(RequestForReference.spawn,
                                              reference_queue=self.reference_queue,

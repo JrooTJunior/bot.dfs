@@ -3,6 +3,8 @@ from time import time
 
 
 class RequestsDb(object):
+    """This class abstracts away logic of interacting with database (redis)"""
+
     def __init__(self, db, time_range=1000):
         super(RequestsDb, self).__init__()
         self.time_range = time_range
@@ -15,13 +17,14 @@ class RequestsDb(object):
         self._db.zadd("requests:dates", time(), request_id)
 
     def get_pending_requests(self):
-        return {key: self._get_request(key) for key in self._db.smembers("requests:pending")}
+        return {key: self.get_request(key) for key in self._db.smembers("requests:pending")}
 
-    def _get_request(self, request_id):
+    def get_request(self, request_id):
         return self._db.hgetall(req_key(request_id))
 
     def complete_request(self, request_id):
         self._db.srem("requests:pending", request_id)
+        self._db.sadd("requests:complete", request_id)
         self._db.hset(req_key(request_id), "status", "complete")
 
     def add_award(self, tender_id, award_id, request_id):
@@ -32,6 +35,13 @@ class RequestsDb(object):
         self._db.zinterstore("recent:requests:edrpou:{}".format(edr_code), ("requests:edrpou:{}".format(edr_code),
                                                                             "requests:dates"))
         return self._db.zrangebyscore("recent:requests:edrpou:{}".format(edr_code), time() - self.time_range, time())
+
+    def complete_requests_with(self, edr_code):
+        return self._db.sinter("complete:requests:with", ("requests:edrpou:{}".format(edr_code), "requests:complete"))
+
+    def recent_complete_requests_with(self, edr_code):
+        self._db.zinterstore("recent:complete:edrpou:{}:".format(edr_code), ("requests:edrpou:{}".format(edr_code),
+                                                                             "requests:dates"))
 
     def add_daily_request(self):
         self._db.incr("requests:number")

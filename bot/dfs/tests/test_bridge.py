@@ -47,6 +47,7 @@ class TestBridgeWorker(BaseServersTest):
         scanner, filter_tender, request_for_reference = [MagicMock(return_value=i) for i in range(3)]
         self.worker.scanner = scanner
         self.worker.filter_tender = filter_tender
+        self.worker.request_for_reference = request_for_reference
 
         self.worker._start_jobs()
         # check that all jobs were started

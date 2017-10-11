@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import os
 import subprocess
 from time import sleep
 from unittest import TestCase
@@ -162,19 +163,6 @@ class TestUtils(TestCase):
     def test_generate_doc_id(self):
         self.assertTrue(isinstance(generate_doc_id(), str))
 
-    def test_check_add_suffix(self):
-        list_ids = ['123', '456', '678']
-        document_id = '12345'
-        number = 2
-        suff = '{document_id}.{amount}.{number}'.format(document_id=document_id, amount=len(list_ids), number=number)
-        self.assertEqual(check_add_suffix(list_ids, document_id, number), suff)
-
-    def test_check_add_suffix_no_ids(self):
-        list_ids = []
-        document_id = '12345'
-        number = 2
-        self.assertEqual(check_add_suffix(list_ids, document_id, number), document_id)
-
     def test_is_no_document_in_edr(self):
         response = MagicMock(headers={'Set-Cookie': 1})
         res_json = {'errors': [{'description': [{'error': {'code': 'notFound'}}]}]}
@@ -187,21 +175,6 @@ class TestUtils(TestCase):
     def test_is_code_invalid(self):
         code = 123
         self.assertFalse(is_code_invalid(code))
-
-    def test_check_related_lot_status_active(self):
-        tender = {'lots': [{'status': 'active', 'id': '123'}]}
-        award = {'lotID': '123'}
-        self.assertTrue(check_related_lot_status(tender, award))
-
-    def test_check_related_lot_status_not_active(self):
-        tender = {'lots': [{'status': 'complete', 'id': '123'}]}
-        award = {'lotID': '123'}
-        self.assertFalse(check_related_lot_status(tender, award))
-
-    def test_journal_item_params(self):
-        tender = {'id': "123"}
-        item = {'id': "1234", 'bidID': '456'}
-        self.assertTrue(journal_item_params(tender, item))
 
     def test_more_tenders(self):
         params = {'offset': '123', 'descending': 1}

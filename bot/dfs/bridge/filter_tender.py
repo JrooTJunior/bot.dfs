@@ -77,7 +77,7 @@ class FilterTenders(BaseWorker):
         tender = loads(response.body_string())['data']
         for aw in active_award(tender):
             for code in get_codes(aw):
-                data = Data(tender['id'], aw['id'], code)
+                data = Data(tender['id'], aw['id'], code[0], code[1])
                 self.process_tracker.set_item(data.tender_id, data.item_id)
                 self.edrpou_codes_queue.put(data)
             else:
@@ -104,7 +104,8 @@ def active_award(tender):
 
 
 def get_codes(award):
-    return [supplier['identifier']['id'] for supplier in award['suppliers'] if is_valid(supplier)]
+    return [(supplier['identifier']['id'], supplier['identifier']['name'])
+            for supplier in award['suppliers'] if is_valid(supplier)]
 
 
 def is_valid(supplier):

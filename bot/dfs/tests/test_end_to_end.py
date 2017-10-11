@@ -47,7 +47,7 @@ def doc_response():
 
 def awards(counter_id, counter_bid_id, status, sup_id):
     return {'id': award_ids[counter_id], 'bid_id': bid_ids[counter_bid_id], 'status': status,
-            'suppliers': [{'identifier': {'scheme': 'UA-EDR', 'id': sup_id}}]}
+            'suppliers': [{'identifier': {'scheme': 'UA-EDR', 'id': sup_id, "name": "company_name"}}]}
 
 
 def bids(counter_id, edr_id):
@@ -111,7 +111,7 @@ class EndToEndTest(BaseServersTest):
         setup_routing(self.api_server_bottle, get_tender_response, path='/api/2.3/tenders/123')
         self.worker.scanner()
         self.worker.filter_tender()
-        data = Data('123', award_ids[2], CODES[2])
+        data = Data('123', award_ids[2], CODES[2], "company_name")
         sleep(5)
         sleep_until_done(self.worker, is_working_filter)
         self.assertEqual(self.worker.edrpou_codes_queue.qsize(), 1)

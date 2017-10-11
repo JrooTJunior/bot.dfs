@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+from collections import namedtuple
 from datetime import datetime, time
 from copy import deepcopy, copy
 from logging import getLogger
@@ -10,6 +11,8 @@ from restkit import ResourceError
 
 
 LOGGER = getLogger(__name__)
+
+Data = namedtuple("Data", ["tender_id", "award_id", "edr_code", "name"])
 
 
 def item_key(tender_id, item_id):
