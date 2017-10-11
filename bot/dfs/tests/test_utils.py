@@ -1,16 +1,17 @@
 # -*- coding: utf-8 -*-
 import os
 import subprocess
+
+from time import sleep
 from unittest import TestCase
+from hypothesis import given
+from hypothesis.strategies import datetimes, integers
+from mock import MagicMock, patch
+from redis import StrictRedis
 
-import time
-
-from mock import MagicMock
 from bot.dfs.bridge.caching import Db, db_key
 from bot.dfs.bridge.process_tracker import ProcessTracker
-from bot.dfs.bridge.utils import item_key, check_412
-from redis import StrictRedis
-from restkit import ResourceError
+from bot.dfs.bridge.utils import *
 
 config = {
     "main": {
@@ -31,7 +32,7 @@ class TestUtils(TestCase):
     @classmethod
     def setUpClass(cls):
         cls.redis_process = subprocess.Popen(['redis-server', '--port', str(cls.PORT)])
-        time.sleep(0.1)
+        sleep(0.1)
         cls.redis = StrictRedis(port=cls.PORT)
 
     def setUp(self):
@@ -127,3 +128,70 @@ class TestUtils(TestCase):
             func(MagicMock(headers={'Cookie': 1}))
         f = check_412(MagicMock(side_effect=[1]))
         self.assertEqual(f(1), 1)
+
+    @given(integers())
+    def test_to_base36(self, input):
+        self.assertEqual(to_base36(11), "B")
+        self.assertEqual(to_base36(35), "Z")
+        self.assertEqual(to_base36(36), "10")
+        to_base36(input)
+
+    @patch("bot.dfs.bridge.utils.datetime")
+    @given(integers(), datetimes())
+    def test_file_name(self, datetime_mock, edr_code, h_date):
+        datetime_mock.now = MagicMock(return_value=h_date)
+        sample_name = "ieK{}{}{}{}{}1.xml".format(edr_code, FORM_NAME, to_base36(h_date.month),
+                                                  to_base36(h_date.day), h_date.year)
+        self.assertEqual(sample_name, sfs_file_name(edr_code, 1))
+
+    def test_item_key(self):
+        tender_id = '123'
+        item_id = '456'
+        self.assertEqual(item_key(tender_id, item_id), '{}_{}'.format(tender_id, item_id))
+
+    def test_journal_context(self):
+        params = {'text': '123'}
+        self.assertTrue(journal_context(params=params))
+
+    def test_generate_req_id(self):
+        self.assertTrue(isinstance(generate_req_id(), str))
+
+    def test_generate_doc_id(self):
+        self.assertTrue(isinstance(generate_doc_id(), str))
+
+    def test_is_no_document_in_edr(self):
+        response = MagicMock(headers={'Set-Cookie': 1})
+        res_json = {'errors': [{'description': [{'error': {'code': 'notFound'}}]}]}
+        self.assertFalse(is_no_document_in_edr(response, res_json))
+
+    def test_should_process_item(self):
+        item = {'status': 'active', 'documents': [{'documentType': 'sfsConfirmation'}]}
+        self.assertFalse(should_process_item(item))
+
+    def test_is_code_invalid(self):
+        code = 123
+        self.assertFalse(is_code_invalid(code))
+
+    def test_more_tenders(self):
+        params = {'offset': '123', 'descending': 1}
+        response = MagicMock(headers={'Set-Cookie': 1})
+        self.assertTrue(more_tenders(params, response))
+
+    def test_valid_qualification_tender(self):
+        tender = {'status': "active.qualification", 'procurementMethodType': 'aboveThresholdUA'}
+        self.assertTrue(valid_qualification_tender(tender))
+
+    @patch('bot.dfs.bridge.utils.datetime')
+    def test_business_date_checker_business_date(self, datetime_mock):
+        datetime_mock.now = MagicMock(return_value=datetime(2017, 10, 10, 12, 00, 00, 000000))
+        self.assertTrue(business_date_checker())
+
+    @patch('bot.dfs.bridge.utils.datetime')
+    def test_business_date_checker_weekend(self, datetime_mock):
+        datetime_mock.now = MagicMock(return_value=datetime(2017, 10, 16, 12, 00, 00, 000000))
+        self.assertFalse(business_date_checker())
+
+    @patch('bot.dfs.bridge.utils.datetime')
+    def test_business_date_checker_free_time(self, datetime_mock):
+        datetime_mock.now = MagicMock(return_value=datetime(2017, 10, 10, 06, 00, 00, 000000))
+        self.assertFalse(business_date_checker())

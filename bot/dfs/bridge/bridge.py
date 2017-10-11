@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+from bot.dfs.bridge.sfs_worker import SfsWorker
 from gevent import monkey
 
 monkey.patch_all()
@@ -14,19 +15,19 @@ from yaml import load
 from gevent import event
 from gevent.queue import Queue
 from retrying import retry
-from restkit import request, RequestError, ResourceError
-from requests import RequestException
+from restkit import RequestError, ResourceError
 from constants import retry_mult
 
 from openprocurement_client.client import TendersClientSync as BaseTendersClientSync, TendersClient as BaseTendersClient
-from bot.dfs.client import DocServiceClient, ProxyClient
 from process_tracker import ProcessTracker
 from scanner import Scanner
+from request_for_reference import RequestForReference
+from requests_db import RequestsDb
+from requests_to_sfs import RequestsToSfs
 from caching import Db
 from filter_tender import FilterTenders
 from utils import journal_context, check_412
-from journal_msg_ids import (DATABRIDGE_RESTART_WORKER, DATABRIDGE_START, DATABRIDGE_DOC_SERVICE_CONN_ERROR,
-                             DATABRIDGE_PROXY_SERVER_CONN_ERROR)
+from journal_msg_ids import (DATABRIDGE_RESTART_WORKER, DATABRIDGE_START, DATABRIDGE_DOC_SERVICE_CONN_ERROR)
 
 from sleep_change_value import APIRateController
 
@@ -62,6 +63,7 @@ class EdrDataBridge(object):
         self.sleep_change_value = APIRateController(self.increment_step, self.decrement_step)
         self.sandbox_mode = os.environ.get('SANDBOX_MODE', 'False')
         self.time_to_live = self.config_get('time_to_live') or 300
+        self.time_range = self.config_get('time_range') or 0
 
         # init clients
         self.tenders_sync_client = TendersClientSync('', host_url=ro_api_server, api_version=self.api_version)
@@ -70,6 +72,8 @@ class EdrDataBridge(object):
         # init queues for workers
         self.filtered_tender_ids_queue = Queue(maxsize=buffers_size)  # queue of tender IDs with appropriate status
         self.edrpou_codes_queue = Queue(maxsize=buffers_size)  # queue with edrpou codes (Data objects stored in it)
+        self.reference_queue = Queue(maxsize=buffers_size)  # queue of request IDs and documents
+        self.upload_to_api_queue = Queue(maxsize=buffers_size)  # queue with data to upload back into central DB
 
         # blockers
         self.initialization_event = event.Event()
@@ -77,6 +81,8 @@ class EdrDataBridge(object):
         self.services_not_available.set()
         self.db = Db(config)
         self.process_tracker = ProcessTracker(self.db, self.time_to_live)
+        self.request_db = RequestsDb(self.db, self.time_range)
+        self.request_to_sfs = RequestsToSfs()
 
         # Workers
         self.scanner = partial(Scanner.spawn,
@@ -95,6 +101,23 @@ class EdrDataBridge(object):
                                      services_not_available=self.services_not_available,
                                      sleep_change_value=self.sleep_change_value,
                                      delay=self.delay)
+
+        self.sfs_reqs_worker = partial(SfsWorker.spawn, sfs_client=self.request_to_sfs,
+                                       sfs_reqs_queue=self.edrpou_codes_queue,
+                                       upload_to_api_queue=self.upload_to_api_queue,
+                                       process_tracker=self.process_tracker,
+                                       redis_db=self.request_db,
+                                       services_not_available=self.services_not_available,
+                                       sleep_change_value=self.sleep_change_value,
+                                       delay=15)
+
+        self.request_for_reference = partial(RequestForReference.spawn,
+                                             reference_queue=self.reference_queue,
+                                             request_to_sfs=self.request_to_sfs,
+                                             request_db=self.request_db,
+                                             services_not_available=self.services_not_available,
+                                             sleep_change_value=self.sleep_change_value,
+                                             delay=self.delay)
 
     def config_get(self, name):
         return self.config.get('main').get(name)
@@ -135,7 +158,9 @@ class EdrDataBridge(object):
             self.set_sleep()
 
     def _start_jobs(self):
-        self.jobs = {'scanner': self.scanner(), 'filter_tender': self.filter_tender()}
+        self.jobs = {'scanner': self.scanner(),
+                     'filter_tender': self.filter_tender(),
+                     'request_for_reference': self.request_for_reference()}
 
     def launch(self):
         while True:
@@ -155,9 +180,10 @@ class EdrDataBridge(object):
                 if counter == 20:
                     counter = 0
                     logger.info(
-                        'Current state: Filtered tenders {}; Edrpou codes queue {}'.format(
+                        'Current state: Filtered tenders {}; Edrpou codes queue {}; References queue {}'.format(
                             self.filtered_tender_ids_queue.qsize(),
-                            self.edrpou_codes_queue.qsize()))
+                            self.edrpou_codes_queue.qsize(),
+                            self.reference_queue.qsize()))
                 counter += 1
                 self.check_and_revive_jobs()
         except KeyboardInterrupt:

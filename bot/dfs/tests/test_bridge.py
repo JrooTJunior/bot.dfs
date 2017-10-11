@@ -1,21 +1,23 @@
 # -*- coding: utf-8 -*-
 import os
 
-from gevent import killall
-from mock import patch, MagicMock
-from bot.dfs.client import DocServiceClient, ProxyClient
-from bot.dfs.bridge.bridge import EdrDataBridge
 from base import BaseServersTest, config
-from utils import custom_sleep, AlmostAlwaysTrue
-from openprocurement_client.client import TendersClientSync, TendersClient
-from requests import RequestException
+from bot.dfs.bridge.bridge import EdrDataBridge
+from mock import MagicMock, patch
+from openprocurement_client.client import TendersClient, TendersClientSync
 from restkit import RequestError
+from utils import AlmostAlwaysTrue, custom_sleep
 
 
 class TestBridgeWorker(BaseServersTest):
-    def test_init(self):
-        # import pdb;pdb.set_trace()
+    def setUp(self):
+        super(TestBridgeWorker, self).setUp()
         self.worker = EdrDataBridge(config)
+
+    def tearDown(self):
+        super(TestBridgeWorker, self).tearDown()
+
+    def test_init(self):
         self.assertEqual(self.worker.delay, config['main']['delay'])
         self.assertEqual(self.worker.sleep_change_value.time_between_requests, 0)
         self.assertTrue(isinstance(self.worker.tenders_sync_client, TendersClientSync))
@@ -41,35 +43,35 @@ class TestBridgeWorker(BaseServersTest):
                           'api_version': config['main']['tenders_api_version']})
 
     def test_start_jobs(self):
-        self.worker = EdrDataBridge(config)
-
-        scanner, filter_tender, edr_handler, upload_file_to_doc_service, upload_file_to_tender = \
-            [MagicMock(return_value=i) for i in range(5)]
+        scanner, filter_tender, request_for_reference = [MagicMock(return_value=i) for i in range(3)]
         self.worker.scanner = scanner
         self.worker.filter_tender = filter_tender
+        self.worker.request_for_reference = request_for_reference
 
         self.worker._start_jobs()
         # check that all jobs were started
         self.assertTrue(scanner.called)
         self.assertTrue(filter_tender.called)
+        self.assertTrue(request_for_reference.called)
 
         self.assertEqual(self.worker.jobs['scanner'], 0)
         self.assertEqual(self.worker.jobs['filter_tender'], 1)
+        self.assertEqual(self.worker.jobs['request_for_reference'], 2)
 
     @patch('gevent.sleep')
     def test_bridge_run(self, sleep):
-        self.worker = EdrDataBridge(config)
-        scanner, filter_tender = [MagicMock() for i in range(2)]
+        scanner, filter_tender, request_for_reference = [MagicMock() for _ in range(3)]
         self.worker.scanner = scanner
         self.worker.filter_tender = filter_tender
+        self.worker.request_for_reference = request_for_reference
         self.worker.check_and_revive_jobs = MagicMock()
         with patch('__builtin__.True', AlmostAlwaysTrue(10)):
             self.worker.run()
         self.assertEqual(self.worker.scanner.call_count, 1)
         self.assertEqual(self.worker.filter_tender.call_count, 1)
+        self.assertEqual(self.worker.request_for_reference.call_count, 1)
 
     def test_openprocurement_api_failure(self):
-        self.worker = EdrDataBridge(config)
         self.api_server.stop()
         with self.assertRaises(RequestError):
             self.worker.check_openprocurement_api()
@@ -77,7 +79,6 @@ class TestBridgeWorker(BaseServersTest):
         self.assertTrue(self.worker.check_openprocurement_api())
 
     def test_openprocurement_api_mock(self):
-        self.worker = EdrDataBridge(config)
         self.worker.client = MagicMock(head=MagicMock(side_effect=RequestError()))
         with self.assertRaises(RequestError):
             self.worker.check_openprocurement_api()
@@ -87,7 +88,6 @@ class TestBridgeWorker(BaseServersTest):
     def test_check_services(self):
         t = os.environ.get("SANDBOX_MODE", "False")
         os.environ["SANDBOX_MODE"] = "True"
-        self.worker = EdrDataBridge(config)
         self.worker.services_not_available = MagicMock(set=MagicMock(), clear=MagicMock())
         self.api_server.stop()
         self.worker.check_services()
@@ -98,7 +98,6 @@ class TestBridgeWorker(BaseServersTest):
         os.environ["SANDBOX_MODE"] = t
 
     def test_check_services_mock(self):
-        self.worker = EdrDataBridge(config)
         self.worker.check_openprocurement_api = MagicMock()
         self.worker.set_wake_up = MagicMock()
         self.worker.set_sleep = MagicMock()
@@ -119,7 +118,6 @@ class TestBridgeWorker(BaseServersTest):
 
     @patch("gevent.sleep")
     def test_launch(self, gevent_sleep):
-        self.worker = EdrDataBridge(config)
         self.worker.run = MagicMock()
         self.worker.all_available = MagicMock(return_value=True)
         self.worker.launch()
@@ -127,21 +125,18 @@ class TestBridgeWorker(BaseServersTest):
 
     @patch("gevent.sleep")
     def test_launch_unavailable(self, gevent_sleep):
-        self.worker = EdrDataBridge(config)
         self.worker.all_available = MagicMock(return_value=False)
         with patch('__builtin__.True', AlmostAlwaysTrue()):
             self.worker.launch()
         gevent_sleep.assert_called_once()
 
     def test_check_and_revive_jobs(self):
-        self.worker = EdrDataBridge(config)
         self.worker.jobs = {"test": MagicMock(dead=MagicMock(return_value=True))}
         self.worker.revive_job = MagicMock()
         self.worker.check_and_revive_jobs()
         self.worker.revive_job.assert_called_once_with("test")
 
     def test_revive_job(self):
-        self.worker = EdrDataBridge(config)
         self.worker.test = MagicMock()
         self.worker.jobs = {"test": MagicMock(dead=MagicMock(return_value=True))}
         self.worker.revive_job("test")

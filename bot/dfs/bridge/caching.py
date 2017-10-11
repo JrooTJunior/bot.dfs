@@ -1,4 +1,4 @@
-# coding=utf-8
+# -*- coding: utf-8 -*-
 
 from logging import getLogger
 
@@ -55,6 +55,21 @@ class Db(object):
 
     def hmset(self, key, value):
         return self.db.hmset(key, value)
+
+    def srem(self, key, value):
+        self.db.srem(key, value)
+
+    def hset(self, key, field, value):
+        self.db.hset(key, field, value)
+
+    def zadd(self, name, *args, **kwargs):
+        return self.db.zadd(name, *args, **kwargs)
+
+    def zinterstore(self, name, sets):
+        return self.db.zinterstore(name, sets, aggregate="MAX")
+
+    def zrangebyscore(self, name, min, max):
+        return self.db.zrangebyscore(name, min, max)
 
 
 def db_key(tender_id):
