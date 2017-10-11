@@ -8,7 +8,7 @@ class RequestsDb(object):
         self.time_range = time_range
         self._db = db
 
-    def add_dfs_request(self, request_id, request_data):
+    def add_sfs_request(self, request_id, request_data):
         self._db.hmset(req_key(request_id), request_data)
         self._db.sadd("requests:pending", request_id)
         self._db.sadd("requests:edrpou:{}".format(request_data['edr_code']), request_id)

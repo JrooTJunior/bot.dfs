@@ -1,10 +1,11 @@
 # -*- coding: utf-8 -*-
-from datetime import datetime
+from datetime import datetime, time
+from copy import deepcopy, copy
 from logging import getLogger
 from string import digits, uppercase
 from uuid import uuid4
 
-from constants import FORM_NAME, qualification_procurementMethodType, tender_status, version
+from constants import FORM_NAME, version, qualification_procurementMethodType, tender_status, DOC_TYPE, AWARD_STATUS, TZ, HOLIDAYS
 from restkit import ResourceError
 
 
@@ -48,6 +49,16 @@ def check_412(func):
     return func_wrapper
 
 
+def is_no_document_in_edr(response, res_json):
+    return (response.status_code == 404 and isinstance(res_json, dict)
+            and res_json.get('errors')[0].get('description')[0].get('error').get('code') == u"notFound")
+
+
+def should_process_item(item):
+    return (item['status'] == AWARD_STATUS and not [document for document in item.get('documents', [])
+                                                    if document.get('documentType') == DOC_TYPE])
+
+
 def is_code_invalid(code):
     return (not (type(code) == int or (type(code) == str and code.isdigit()) or
                  (type(code) == unicode and code.isdigit())))
@@ -87,3 +98,15 @@ def to_base36(number):
         base36 = alphabet[i] + base36
 
     return sign + base36
+
+
+def business_date_checker():
+    current_date = datetime.now(TZ)
+    if current_date.weekday() in [5, 6] and HOLIDAYS.get(current_date.date().isoformat(), True) or HOLIDAYS.get(
+            current_date.date().isoformat(), False):
+        return False
+    else:
+        if time(9, 0) <= current_date.time() <= time(18, 0):
+            return True
+        else:
+            return False

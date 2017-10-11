@@ -9,6 +9,7 @@ import os
 import argparse
 import gevent
 
+from zeep import Client
 from functools import partial
 from yaml import load
 from gevent import event
@@ -20,6 +21,9 @@ from constants import retry_mult
 from openprocurement_client.client import TendersClientSync as BaseTendersClientSync, TendersClient as BaseTendersClient
 from process_tracker import ProcessTracker
 from scanner import Scanner
+from request_for_reference import RequestForReference
+from requests_db import RequestsDb
+from requests_to_sfs import RequestsToSfs
 from caching import Db
 from filter_tender import FilterTenders
 from utils import journal_context, check_412
@@ -67,6 +71,7 @@ class EdrDataBridge(object):
         # init queues for workers
         self.filtered_tender_ids_queue = Queue(maxsize=buffers_size)  # queue of tender IDs with appropriate status
         self.edrpou_codes_queue = Queue(maxsize=buffers_size)  # queue with edrpou codes (Data objects stored in it)
+        self.reference_queue = Queue(maxsize=buffers_size)  # queue of request IDs and documents
 
         # blockers
         self.initialization_event = event.Event()
@@ -74,6 +79,8 @@ class EdrDataBridge(object):
         self.services_not_available.set()
         self.db = Db(config)
         self.process_tracker = ProcessTracker(self.db, self.time_to_live)
+        self.request_db = RequestsDb(self.db)
+        self.request_to_sfs = RequestsToSfs()
 
         # Workers
         self.scanner = partial(Scanner.spawn,
@@ -94,6 +101,14 @@ class EdrDataBridge(object):
                                      delay=self.delay)
         # TODO
         # self.sfs_reqs_worker = partial(SfsWorker.spawn, )
+
+        self.request_for_reference = partial(RequestForReference.spawn,
+                                             reference_queue=self.reference_queue,
+                                             request_to_sfs=self.request_to_sfs,
+                                             request_db=self.request_db,
+                                             services_not_available=self.services_not_available,
+                                             sleep_change_value=self.sleep_change_value,
+                                             delay=self.delay)
 
     def config_get(self, name):
         return self.config.get('main').get(name)
@@ -134,7 +149,9 @@ class EdrDataBridge(object):
             self.set_sleep()
 
     def _start_jobs(self):
-        self.jobs = {'scanner': self.scanner(), 'filter_tender': self.filter_tender()}
+        self.jobs = {'scanner': self.scanner(),
+                     'filter_tender': self.filter_tender(),
+                     'request_for_reference': self.request_for_reference()}
 
     def launch(self):
         while True:
@@ -154,9 +171,10 @@ class EdrDataBridge(object):
                 if counter == 20:
                     counter = 0
                     logger.info(
-                        'Current state: Filtered tenders {}; Edrpou codes queue {}'.format(
+                        'Current state: Filtered tenders {}; Edrpou codes queue {}; References queue {}'.format(
                             self.filtered_tender_ids_queue.qsize(),
-                            self.edrpou_codes_queue.qsize()))
+                            self.edrpou_codes_queue.qsize(),
+                            self.reference_queue.qsize()))
                 counter += 1
                 self.check_and_revive_jobs()
         except KeyboardInterrupt:

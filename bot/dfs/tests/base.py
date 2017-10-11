@@ -1,7 +1,7 @@
-# coding=utf-8
+# -*- coding: utf-8 -*-
+import os
 import subprocess
 import unittest
-import os
 
 from time import sleep
 from bottle import Bottle, request, response
