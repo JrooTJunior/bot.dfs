@@ -1,18 +1,14 @@
 # -*- coding: utf-8 -*-
-from collections import namedtuple
 from datetime import datetime, time
-from copy import deepcopy, copy
 from logging import getLogger
 from string import digits, uppercase
 from uuid import uuid4
 
-from constants import FORM_NAME, version, qualification_procurementMethodType, tender_status, DOC_TYPE, AWARD_STATUS, TZ, HOLIDAYS
+from constants import (AWARD_STATUS, DOC_TYPE, FORM_NAME, HOLIDAYS, TZ, qualification_procurementMethodType,
+                       tender_status)
 from restkit import ResourceError
 
-
 LOGGER = getLogger(__name__)
-
-Data = namedtuple("Data", ["tender_id", "award_id", "edr_code", "name"])
 
 
 def item_key(tender_id, item_id):

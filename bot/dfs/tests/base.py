@@ -4,9 +4,9 @@ import subprocess
 import unittest
 
 from time import sleep
-from bottle import Bottle, request, response
-from gevent.pywsgi import WSGIServer
 from redis import StrictRedis
+from gevent.pywsgi import WSGIServer
+from bottle import Bottle, request, response
 
 from bot.dfs.bridge.caching import Db
 

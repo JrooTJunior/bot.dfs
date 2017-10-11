@@ -10,7 +10,6 @@ import os
 import argparse
 import gevent
 
-from zeep import Client
 from functools import partial
 from yaml import load
 from gevent import event
@@ -69,7 +68,6 @@ class EdrDataBridge(object):
         # init clients
         self.tenders_sync_client = TendersClientSync('', host_url=ro_api_server, api_version=self.api_version)
         self.client = TendersClient(self.config_get('api_token'), host_url=api_server, api_version=self.api_version)
-        # self.sfs_client =
 
         # init queues for workers
         self.filtered_tender_ids_queue = Queue(maxsize=buffers_size)  # queue of tender IDs with appropriate status

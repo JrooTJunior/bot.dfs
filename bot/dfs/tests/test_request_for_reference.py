@@ -1,13 +1,12 @@
 # -*- coding: utf-8 -*-
-from gevent import monkey, event
+from gevent import event, monkey
 
 monkey.patch_all()
 
 import datetime
 from gevent.queue import Queue
 from base import BaseServersTest
-from mock import patch, MagicMock
-from time import sleep
+from mock import patch
 
 from bot.dfs.bridge.request_for_reference import RequestForReference
 from bot.dfs.bridge.sleep_change_value import APIRateController

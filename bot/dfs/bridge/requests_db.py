@@ -42,6 +42,7 @@ class RequestsDb(object):
     def recent_complete_requests_with(self, edr_code):
         self._db.zinterstore("recent:complete:edrpou:{}:".format(edr_code), ("requests:edrpou:{}".format(edr_code),
                                                                              "requests:dates"))
+        return self._db.zrangebyscore("recent:complete:edrpou:{}:".format(edr_code), time() - self.time_range, time())
 
     def add_daily_request(self):
         self._db.incr("requests:number")

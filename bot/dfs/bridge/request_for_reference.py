@@ -41,24 +41,27 @@ class RequestForReference(BaseWorker):
                     logger.warning('Fail to get pending requests. Message {}'.format(e.message))
                 else:
                     if isinstance(request_ids, dict):
-                        for request_id, request_data in request_ids.items():
-                            edr_code = request_data['edr_code']
-                            ca_name = ''
-                            try:
-                                cert = self.request_to_sfs.sfs_get_certificate_request(ca_name)
-                            except Exception as e:
-                                logger.warning('Fail to get certificate. Message {}'.format(e.message))
-                                sleep()
-                            else:
-                                try:
-                                    quantity_of_docs = self.request_to_sfs.sfs_check_request(edr_code)
-                                except Exception as e:
-                                    logger.warning(
-                                        'Fail to check for incoming correspondence. Message {}'.format(e.message))
-                                    sleep()
-                                else:
-                                    if int(quantity_of_docs) == 0:
-                                        self.sfs_receiver(request_id, edr_code, ca_name, cert)
+                        self.check_incoming_correspondence(request_ids)
+
+    def check_incoming_correspondence(self, request_ids):
+        for request_id, request_data in request_ids.items():
+            edr_code = request_data['edr_code']
+            ca_name = ''
+            try:
+                cert = self.request_to_sfs.sfs_get_certificate_request(ca_name)
+            except Exception as e:
+                logger.warning('Fail to get certificate. Message {}'.format(e.message))
+                sleep()
+            else:
+                try:
+                    quantity_of_docs = self.request_to_sfs.sfs_check_request(edr_code)
+                except Exception as e:
+                    logger.warning(
+                        'Fail to check for incoming correspondence. Message {}'.format(e.message))
+                    sleep()
+                else:
+                    if int(quantity_of_docs) == 0:
+                        self.sfs_receiver(request_id, edr_code, ca_name, cert)
 
     def sfs_receiver(self, request_id, edr_code, ca_name, cert):
         """Get documents from SFS, put request id with received documents to queue"""

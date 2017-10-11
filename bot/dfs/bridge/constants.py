@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
-import os
 from json import loads
+
+import os
+
 from pytz import timezone
 
 
