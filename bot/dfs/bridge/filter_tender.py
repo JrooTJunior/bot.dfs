@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-
 from gevent import monkey
 
 monkey.patch_all()
@@ -11,8 +10,7 @@ from gevent import spawn
 from gevent.hub import LoopExit
 from simplejson import loads
 
-from utils import (
-    generate_req_id, journal_context, is_code_invalid, )
+from utils import generate_req_id, journal_context, is_code_invalid
 from data import Data
 from base_worker import BaseWorker
 from journal_msg_ids import DATABRIDGE_TENDER_NOT_PROCESS
@@ -100,7 +98,7 @@ def journal_item_params(tender_id, bid_id, award_id):
 
 
 def active_award(tender):
-    return [aw for aw in tender.get('awards') if aw.get('status') == 'active']
+    return [aw for aw in tender.get('awards', []) if aw.get('status') == 'active']
 
 
 def get_codes(award):

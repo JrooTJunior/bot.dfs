@@ -193,7 +193,7 @@ class TestFilterWorker(unittest.TestCase):
                                             'procurementMethodType': 'aboveThresholdEU',
                                             'awards': [self.awards(0, 0, AWARD_STATUS, CODES[0]),
                                                        self.awards(1, 1, 'unsuccessful', CODES[2])]}}))]
-        data = Data(self.tender_id, self.award_ids[0], CODES[0], "company_name" )
+        data = Data(self.tender_id, self.award_ids[0], CODES[0], "company_name")
         self.assertEqual(self.edrpou_codes_queue.get(), data)
         self.assertItemsEqual(self.process_tracker.processing_items.keys(),
                               [item_key(self.tender_id, self.award_ids[0])])
@@ -315,3 +315,13 @@ class TestFilterWorker(unittest.TestCase):
         self.assertEqual(self.client.request.call_count, 2)
         self.assertEqual(self.edrpou_codes_queue.qsize(), 0)
         self.assertItemsEqual(self.process_tracker.processing_items, {})
+
+    def test_process_response_fail(self):
+        response = MagicMock(body_string=MagicMock(return_value="{\"data\": {\"id\": 1}}"))
+        self.worker.process_response(response)
+
+    def test_process_response(self):
+        res_json = {"data": {"id": 1, "awards": [{"status": "active", "id": 2, "bid_id": 1,
+                                                  "suppliers": [{"identifier": {"scheme": "UA-EDR", "name": "cname", "id": 1}}]}]}}
+        response = MagicMock(body_string=MagicMock(return_value=dumps(res_json)))
+        self.worker.process_response(response)
