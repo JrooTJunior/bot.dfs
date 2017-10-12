@@ -69,12 +69,13 @@ class TestRequestForReferenceWorker(BaseServersTest):
         self.assertIsNone(self.reference_queue.get()[1])
 
     def test_check_incoming_correspondence_sfs_check_request_exception(self):
-        request_ids = {'req1': {'edr_code': []}}
+        self.redis.flushall()
+        self.request_ids = {'req1': {'edr_code': []}}
         for key, value in self.request_ids.items():
             self.request_db.add_sfs_request(key, value)
         rfr = RequestForReference(self.reference_queue, self.request_to_sfs, self.request_db, self.sna,
                                   self.sleep_change_value)
-        self.assertIsNone(rfr.check_incoming_correspondence(request_ids))
+        self.assertIsNone(rfr.check_incoming_correspondence(self.request_ids))
         self.assertIsNone(self.reference_queue.get()[1])
 
     def test_sfs_receiver_exception(self):
