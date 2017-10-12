@@ -1,17 +1,17 @@
 # -*- coding: utf-8 -*-
-import os
 import subprocess
-
 from time import sleep
 from unittest import TestCase
-from hypothesis import given
-from hypothesis.strategies import datetimes, integers
-from mock import MagicMock, patch
-from redis import StrictRedis
+
+import os
 
 from bot.dfs.bridge.caching import Db, db_key
 from bot.dfs.bridge.process_tracker import ProcessTracker
 from bot.dfs.bridge.utils import *
+from hypothesis import given
+from hypothesis.strategies import datetimes, integers
+from mock import MagicMock, patch
+from redis import StrictRedis
 
 config = {
     "main": {

@@ -1,19 +1,16 @@
 # coding=utf-8
 from bot.dfs.bridge.process_tracker import ProcessTracker
 from bot.dfs.bridge.requests_db import RequestsDb
+from bot.dfs.bridge.requests_to_sfs import RequestsToSfs
 from bot.dfs.bridge.sleep_change_value import APIRateController
+from bot.dfs.bridge.workers.sfs_worker import SfsWorker
 from bot.dfs.bridge.xml_utils import Data
+from bot.dfs.tests.base import BaseServersTest
 from gevent import event
 from gevent.queue import Queue
 
-from bot.dfs.bridge.requests_to_sfs import RequestsToSfs
-from bot.dfs.bridge.workers.sfs_worker import SfsWorker
-from bot.dfs.tests.base import BaseServersTest
-from mock import Mock
-
 
 class TestSfsWorker(BaseServersTest):
-
     def setUp(self):
         super(TestSfsWorker, self).setUp()
         sfs_client = RequestsToSfs()
@@ -25,7 +22,7 @@ class TestSfsWorker(BaseServersTest):
         services_not_available.set()
         sleep_change_value = APIRateController()
         self.worker = SfsWorker(sfs_client, sfs_reqs_queue, upload_to_api_queue,
-                           process_tracker, redis_db, services_not_available, sleep_change_value)
+                                process_tracker, redis_db, services_not_available, sleep_change_value)
 
     def test_init(self):
         sfs_client = RequestsToSfs()
@@ -47,22 +44,21 @@ class TestSfsWorker(BaseServersTest):
         self.assertEqual(sleep_change_value, worker.sleep_change_value)
 
     def test_process_new_request(self):
-        data = Data(1, 1, False, "comname", None, None, None)
+        data = Data(1, 1, 1, False, "comname", None, None, None)
         self.worker.process_new_request(data)
 
-"""
-    def __init__(self, sfs_client, sfs_reqs_queue, upload_to_api_queue, process_tracker, requests_db,
-                 services_not_available, sleep_change_value, delay=15):
-        super(SfsWorker, self).__init__(services_not_available)
-        self.start_time = datetime.now()
+    def test_process_new_request_physical(self):
+        data = Data(1, 1, 1, True, None, "last", "first", "family")
+        self.worker.process_new_request(data)
 
-        self.delay = delay
-        self.process_tracker = process_tracker
+    def test_process_existing_request(self):
+        data = Data(1, 1, 1, False, "comname", None, None, None)
+        req_id = 111
+        self.worker.process_existing_request(data, req_id)
 
-        # init queues for workers
-        self.sfs_reqs_queue = sfs_reqs_queue
-        self.upload_to_api_queue = upload_to_api_queue
-        self.requests_db = requests_db
-        self.sfs_client = sfs_client
-        self.sleep_change_value = sleep_change_value
-"""
+    def test_processing_existing_request_with_completed(self):
+        data = Data(1, 1, 1, False, "comname", None, None, None)
+        req_id = 111
+        self.worker.requests_db.add_sfs_request(req_id, {"edr_code": data.edr_code, "status": "pending"})
+        self.worker.requests_db.complete_request(req_id)
+        self.worker.process_existing_request(data, req_id)

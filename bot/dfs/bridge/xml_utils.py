@@ -1,15 +1,11 @@
 # coding=utf-8
-import xmlschema
 from collections import namedtuple
-from xml.etree.ElementTree import Element, SubElement
 from datetime import datetime
-from xml.etree import ElementTree
 from xml.dom import minidom
+from xml.etree import ElementTree
+from xml.etree.ElementTree import Element, SubElement
 
-
-def validate_request(request):
-    schema = xmlschema.XMLSchema("resources/request.xsd")
-    return schema.validate(request)
+import xmlschema
 
 
 def is_valid(request):
@@ -30,7 +26,7 @@ def form_xml_to_post(data, request_id):
     hnum = SubElement(request, "HNUM")
     hnum.text = str(request_id)
     htin = SubElement(request, "HTIN")
-    htin.text = str(data.code)
+    htin.text = str(data.edr_code)
     hlnameu = SubElement(request, "HLNAMEU")
     hlname = SubElement(request, "HLNAME")
     hpname = SubElement(request, "HPNAME")
@@ -49,5 +45,5 @@ def form_xml_to_post(data, request_id):
     print(is_valid(request))
 
 
-Data = namedtuple("Data", ['tender_id', 'code', 'is_physical', 'company_name',
+Data = namedtuple("Data", ['tender_id', "award_id", 'edr_code', 'is_physical', 'company_name',
                            'last_name', 'first_name', 'fathers_name'])
