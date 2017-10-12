@@ -1,5 +1,5 @@
 [![Build Status](https://travis-ci.org/ITVaan/bot.dfs.svg?branch=master)](https://travis-ci.org/ITVaan/bot.dfs)
-[![Coverage Status](https://coveralls.io/repos/github/ITVaan/bot.dfs/badge.svg?branch=small_fixes)](https://coveralls.io/github/ITVaan/bot.dfs?branch=small_fixes)
+[![Coverage Status](https://coveralls.io/repos/github/ITVaan/bot.dfs/badge.svg?branch=master)](https://coveralls.io/github/ITVaan/bot.dfs?branch=master)
 
 # bot.dfs
 
