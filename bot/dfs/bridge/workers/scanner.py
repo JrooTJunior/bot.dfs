@@ -5,14 +5,14 @@ import logging.config
 from datetime import datetime
 
 import gevent
-from base_worker import BaseWorker
-from constants import retry_mult
+from bot.dfs.bridge.base_worker import BaseWorker
+from bot.dfs.bridge.constants import retry_mult
 from gevent import spawn
 from gevent.event import Event
-from journal_msg_ids import DATABRIDGE_INFO, DATABRIDGE_SYNC_SLEEP, DATABRIDGE_TENDER_PROCESS, DATABRIDGE_WORKER_DIED
+from bot.dfs.bridge.journal_msg_ids import DATABRIDGE_INFO, DATABRIDGE_SYNC_SLEEP, DATABRIDGE_TENDER_PROCESS, DATABRIDGE_WORKER_DIED
 from restkit import ResourceError
 from retrying import retry
-from utils import generate_req_id, journal_context, more_tenders, valid_qualification_tender
+from bot.dfs.bridge.utils import generate_req_id, journal_context, more_tenders, valid_qualification_tender
 
 logger = logging.getLogger(__name__)
 
