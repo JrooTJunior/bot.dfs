@@ -7,7 +7,7 @@ import logging.config
 from datetime import datetime
 from gevent import spawn, sleep
 
-from bot.dfs.bridge.base_worker import BaseWorker
+from bot.dfs.bridge.workers.base_worker import BaseWorker
 from bot.dfs.bridge.utils import business_date_checker
 
 logger = logging.getLogger(__name__)

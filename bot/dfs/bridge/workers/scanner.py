@@ -6,7 +6,7 @@ import logging.config
 from datetime import datetime
 
 import gevent
-from bot.dfs.bridge.base_worker import BaseWorker
+from bot.dfs.bridge.workers.base_worker import BaseWorker
 from bot.dfs.bridge.constants import retry_mult
 from gevent import spawn
 from gevent.event import Event

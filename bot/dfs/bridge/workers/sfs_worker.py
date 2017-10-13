@@ -4,7 +4,7 @@ from gevent import monkey, sleep
 monkey.patch_all()
 from datetime import datetime
 
-from bot.dfs.bridge.base_worker import BaseWorker
+from bot.dfs.bridge.workers.base_worker import BaseWorker
 from bot.dfs.tests.utils import generate_request_id
 
 
