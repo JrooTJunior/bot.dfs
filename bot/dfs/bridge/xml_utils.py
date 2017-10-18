@@ -8,9 +8,14 @@ from xml.etree.ElementTree import Element, SubElement
 import xmlschema
 
 
-def is_valid(request):
+def request_is_valid(request):
     schema = xmlschema.XMLSchema("resources/request.xsd")
     return schema.is_valid(request)
+
+
+def response_is_valid(response):
+    schema = xmlschema.XMLSchema("resources/response.xsd")
+    return schema.is_valid(response)
 
 
 def prettify(elem):
@@ -42,4 +47,4 @@ def form_xml_to_post(data, request_id):
     hfill = SubElement(request, "HFILL")
     hfill.text = datetime.now().isoformat()
     print(prettify(request))
-    print(is_valid(request))
+    print(request_is_valid(request))

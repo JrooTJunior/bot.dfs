@@ -9,6 +9,8 @@ from gevent import spawn, sleep
 
 from bot.dfs.bridge.workers.base_worker import BaseWorker
 from bot.dfs.bridge.utils import business_date_checker
+from bot.dfs.bridge.xml_utils import response_is_valid
+from bot.dfs.bridge.yaml_file_creator import YamlFileCreator
 
 logger = logging.getLogger(__name__)
 
@@ -59,7 +61,7 @@ class RequestForReference(BaseWorker):
                         'Fail to check for incoming correspondence. Message {}'.format(e.message))
                     sleep()
                 else:
-                    if int(quantity_of_docs) == 0:
+                    if int(quantity_of_docs) != 0:
                         self.sfs_receiver(request_id, code, ca_name, cert)
 
     def sfs_receiver(self, request_id, code, ca_name, cert):
@@ -70,14 +72,27 @@ class RequestForReference(BaseWorker):
             logger.warning('Fail to check for incoming correspondence. Message {}'.format(e.message))
             sleep()
         else:
-            try:
-                logger.info('Put request_id {} to process...'.format(request_id))
-                self.reference_queue.put((request_id, received_docs))
-            except Exception as e:
-                logger.exception("Message: {}".format(e.message))
-            else:
-                logger.info(
-                    'Received docs with request_id {} is already in process or was processed.'.format(request_id))
+            for doc in received_docs:
+                if response_is_valid(doc):
+                    try:
+                        yfc = YamlFileCreator()
+                        json_doc = yfc.convert_response_to_json(doc)
+                    except Exception as e:
+                        logger.exception("Message: {}".format(e.message))
+                    else:
+                        logger.info('Received doc with request_id {} converted to json.'.format(request_id))
+                        self.processing_of_doc(request_id, json_doc)
+                else:
+                    logger.exception("Received document {} isn't valid".format(doc))
+
+    def processing_of_doc(self, request_id, doc):
+        try:
+            logger.info('Put request_id {} to process...'.format(request_id))
+            self.reference_queue.put((request_id, doc))
+        except Exception as e:
+            logger.exception("Message: {}".format(e.message))
+        else:
+            logger.info('Received docs with request_id {} is already in process or was processed.'.format(request_id))
 
     def _start_jobs(self):
         return {'sfs_checker': spawn(self.sfs_checker)}
