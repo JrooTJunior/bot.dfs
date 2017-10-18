@@ -47,9 +47,10 @@ class TendersClient(BaseTendersClient):
 
 
 class EdrDataBridge(object):
-    """ Edr API XmlData Bridge """
+    """ Edr API Data Bridge """
 
     def __init__(self, config):
+        logger.info("initialization start")
         super(EdrDataBridge, self).__init__()
         self.config = config
 

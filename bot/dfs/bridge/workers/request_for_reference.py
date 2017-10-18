@@ -41,6 +41,7 @@ class RequestForReference(BaseWorker):
                     logger.warning('Fail to get pending requests. Message {}'.format(e.message))
                 else:
                     self.check_incoming_correspondence(request_ids)
+                sleep(15)
 
     def check_incoming_correspondence(self, request_ids):
         for request_id, request_data in request_ids.items():

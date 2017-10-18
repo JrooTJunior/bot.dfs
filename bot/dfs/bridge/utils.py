@@ -68,6 +68,24 @@ def is_code_invalid(code):
                  (type(code) == unicode and code.isdigit())))
 
 
+def is_code_valid(code):
+    return is_edr_code_valid(code) or is_passport_valid(code) or is_vatin_valid(code)
+
+
+def is_edr_code_valid(code):
+    return (len(str(code)) == 8 and
+            (type(code) == int or (type(code) == str and code.isdigit()) or (type(code) == unicode and code.isdigit())))
+
+
+def is_passport_valid(code):
+    return type(code) == str and len(code) == 8 and type(code[2:]) == int
+
+
+def is_vatin_valid(code):
+    return (len(str(code)) == 10 and
+            (type(code) == int or (type(code) == str and code.isdigit()) or (type(code) == unicode and code.isdigit())))
+
+
 def more_tenders(params, response):
     return not (params.get('descending')
                 and not len(response.data) and params.get('offset') == response.next_page.offset)

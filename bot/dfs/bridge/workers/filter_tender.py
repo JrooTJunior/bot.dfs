@@ -10,7 +10,7 @@ from gevent import spawn
 from gevent.hub import LoopExit
 from simplejson import loads
 
-from bot.dfs.bridge.utils import generate_req_id, journal_context, is_code_invalid
+from bot.dfs.bridge.utils import generate_req_id, journal_context, is_code_invalid, is_code_valid
 from bot.dfs.bridge.data import Data
 from bot.dfs.bridge.workers.base_worker import BaseWorker
 from bot.dfs.bridge.journal_msg_ids import DATABRIDGE_TENDER_NOT_PROCESS
@@ -72,6 +72,7 @@ class FilterTenders(BaseWorker):
             gevent.sleep(self.sleep_change_value.time_between_requests)
 
     def process_response(self, response):
+        logger.info("Processing stuff: {}".format(response))
         tender = loads(response.body_string())['data']
         for aw in active_award(tender):
             for code in get_codes(aw):
@@ -79,6 +80,7 @@ class FilterTenders(BaseWorker):
                             file_content={"meta": {'sourceRequests': [response.headers['X-Request-ID']]}})
                 self.process_tracker.set_item(data.tender_id, data.award_id)
                 self.edrpou_codes_queue.put(data)
+                logger.info("Put {} into edrpou_codes_queue".format(data))
             else:
                 logger.info('Tender {} bid {} award {} identifier schema isn\'t UA-EDR,.'.format(
                     tender['id'], aw['bid_id'], aw['id']),
@@ -108,4 +110,4 @@ def get_codes(award):
 
 
 def is_valid(supplier):
-    return (not is_code_invalid(supplier['identifier']['id'])) and supplier['identifier']['scheme'] == scheme
+    return is_code_valid(supplier['identifier']['id']) and supplier['identifier']['scheme'] == scheme

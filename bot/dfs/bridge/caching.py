@@ -53,7 +53,7 @@ class Db(object):
         return self.db.hgetall(key)
 
     def smembers(self, key):
-        return self.db.smembers(key)
+        return self.db.smembers(key) if self.db.keys(key) else []
 
     def sadd(self, key, value):
         return self.db.sadd(key, value)

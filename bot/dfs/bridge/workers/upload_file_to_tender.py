@@ -18,7 +18,7 @@ from base_worker import BaseWorker
 from bot.dfs.bridge.utils import journal_context
 from bot.dfs.bridge.journal_msg_ids import DATABRIDGE_SUCCESS_UPLOAD_TO_TENDER, \
     DATABRIDGE_UNSUCCESS_UPLOAD_TO_TENDER, DATABRIDGE_ITEM_STATUS_CHANGED_WHILE_PROCESSING
-from bot.dfs.bridge.constants import retry_mult
+from bot.dfs.bridge.constants import retry_mult, DOC_TYPE
 
 logger = logging.getLogger(__name__)
 
@@ -83,7 +83,7 @@ class UploadFileToTender(BaseWorker):
 
     def do_upload_to_tender(self, tender_data):
         document_data = tender_data.file_content.get('data', {})
-        document_data["documentType"] = "registerExtract"
+        document_data["documentType"] = DOC_TYPE
         self.client.headers.update({'X-Client-Request-ID': tender_data.doc_id()})
         self.client._create_tender_resource_item(munchify({'data': {'id': tender_data.tender_id}}),
                                                  {'data': document_data},

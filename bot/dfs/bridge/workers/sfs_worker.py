@@ -38,9 +38,9 @@ class SfsWorker(BaseWorker):
         """Make a new request, bind award in question to it"""
         request_id = generate_request_id()
         data.file_content['meta']['sourceRequests'].append(request_id)
-        response = self.sfs_client.post(data, "", "", request_id)
+        response = self.sfs_client.post(data, "", "", request_id)  # TODO: Here be answer from SFS
         self.requests_db.add_sfs_request(request_id, {"code": data.code, "tender_id": data.tender_id,
-                                                      "name": data.name})
+                                                      "name": data.name, "response": "placeholder"})
 
     def process_existing_request(self, data, existing_request_id):
         """bind award to existing request, load the answer which is already there into Central Database"""

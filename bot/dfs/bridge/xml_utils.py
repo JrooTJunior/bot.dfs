@@ -1,4 +1,6 @@
 # coding=utf-8
+import os
+
 from collections import namedtuple
 from datetime import datetime
 from xml.dom import minidom
@@ -9,7 +11,7 @@ import xmlschema
 
 
 def is_valid(request):
-    schema = xmlschema.XMLSchema("resources/request.xsd")
+    schema = xmlschema.XMLSchema(os.path.join(os.getcwd(), "resources/request.xsd"))
     return schema.is_valid(request)
 
 

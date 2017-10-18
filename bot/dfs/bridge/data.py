@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+from bot.dfs.bridge.utils import is_edr_code_valid, is_vatin_valid, is_passport_valid
 from constants import id_passport_len
 
 
@@ -7,14 +8,14 @@ class Data(object):
         self.tender_id = tender_id
         self.award_id = award_id
         self.code = code
-        if len(str(code)) != 8:
+        if is_passport_valid(code) or is_vatin_valid(code):
             self.is_physical = True
             names = company_name.strip().split(" ")
             self.last_name = names[-2]
             self.first_name = names[-1]
             self.family_name = names[0]
             self.name = " ".join([self.last_name, self.first_name, self.family_name])
-        else:
+        elif is_edr_code_valid(code):
             self.is_physical = False
             self.company_name = company_name
             self.name = self.company_name

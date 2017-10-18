@@ -48,7 +48,7 @@ class TestSfsWorker(BaseServersTest):
         self.worker.process_new_request(data)
 
     def test_process_new_request_physical(self):
-        data = Data(1, 1, 1234, "last_name first_name family_name", {"meta": {"sourceRequests": []}})
+        data = Data(1, 1, 1234567890, "last_name first_name family_name", {"meta": {"sourceRequests": []}})
         self.worker.process_new_request(data)
 
     def test_process_existing_request(self):
