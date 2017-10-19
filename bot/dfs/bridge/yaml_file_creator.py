@@ -1,14 +1,11 @@
 # coding=utf-8
-from xmljson import parker, Parker
-from xml.etree.ElementTree import fromstring
-from json import dumps
 from uuid import uuid4
 
-from constants import version, author
+from constants import author, version
+from xmljson import parker
 
 
 class YamlFileCreator(object):
-
     def __init__(self):
         pass
 
@@ -17,7 +14,7 @@ class YamlFileCreator(object):
                          "sourceRequests": requests, id: generate_file_id()}}
 
     def convert_response_to_json(self, response_xml):
-        data = {"data": parker.data(response_xml),
+        return {"data": parker.data(response_xml),
                 "meta": {"version": version, "author": author, "id": generate_file_id()}}
 
     def convert_json_to_xml(self):

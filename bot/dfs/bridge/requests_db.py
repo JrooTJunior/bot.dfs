@@ -32,8 +32,9 @@ class RequestsDb(object):
         self._db.sadd("tenders_of:{}".format(request_id), award_key(tender_id, award_id))
 
     def recent_requests_with(self, code):
+        # if self._db.has("requests:dates") and self._db.has("request:edrpou"):
         self._db.zinterstore("recent:requests:edrpou:{}".format(code), ("requests:edrpou:{}".format(code),
-                                                                            "requests:dates"))
+                                                                        "requests:dates"))
         return self._db.zrangebyscore("recent:requests:edrpou:{}".format(code), time() - self.time_range, time())
 
     def complete_requests_with(self, code):
@@ -41,7 +42,7 @@ class RequestsDb(object):
 
     def recent_complete_requests_with(self, code):
         self._db.zinterstore("recent:complete:edrpou:{}:".format(code), ("requests:edrpou:{}".format(code),
-                                                                             "requests:dates"))
+                                                                         "requests:dates"))
         return self._db.zrangebyscore("recent:complete:edrpou:{}:".format(code), time() - self.time_range, time())
 
     def add_daily_request(self):

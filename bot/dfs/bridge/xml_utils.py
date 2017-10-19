@@ -1,20 +1,23 @@
 # coding=utf-8
-from collections import namedtuple
+import os
+import xmlschema
+import logging.config
+
 from datetime import datetime
 from xml.dom import minidom
 from xml.etree import ElementTree
 from xml.etree.ElementTree import Element, SubElement
 
-import xmlschema
+logger = logging.getLogger(__name__)
 
 
 def request_is_valid(request):
-    schema = xmlschema.XMLSchema("resources/request.xsd")
+    schema = xmlschema.XMLSchema(os.path.join(os.getcwd(), "resources/request.xsd"))
     return schema.is_valid(request)
 
 
 def response_is_valid(response):
-    schema = xmlschema.XMLSchema("resources/response.xsd")
+    schema = xmlschema.XMLSchema(os.path.join(os.getcwd(), "resources/response.xsd"))
     return schema.is_valid(response)
 
 
@@ -46,5 +49,4 @@ def form_xml_to_post(data, request_id):
     id.text = str(data.tender_id)
     hfill = SubElement(request, "HFILL")
     hfill.text = datetime.now().isoformat()
-    print(prettify(request))
-    print(request_is_valid(request))
+    logger.info("Request {} is valid? {}".format(request_id, request_is_valid(request)))

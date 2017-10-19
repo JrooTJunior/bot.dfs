@@ -144,7 +144,8 @@ class TestFilterWorker(unittest.TestCase):
                                                      'scheme': 'UA-ED',
                                                      'id': CODES[2],
                                                      "name": "company_name"}}]}]}}))]
-        data = Data(self.tender_id, self.award_ids[0], CODES[0], "company_name", {"meta": {"sourceRequests": [self.request_ids[0]]}})
+        data = Data(self.tender_id, self.award_ids[0], CODES[0], "company_name",
+                    {"meta": {"sourceRequests": [self.request_ids[0]]}})
         self.assertEqual(self.edrpou_codes_queue.get(), data)
         self.assertItemsEqual(self.process_tracker.processing_items.keys(),
                               [item_key(self.tender_id, self.award_ids[0])])
@@ -154,7 +155,8 @@ class TestFilterWorker(unittest.TestCase):
         """ We must not lose tender after restart filter worker """
         gevent_sleep.side_effect = custom_sleep
         self.client.request.side_effect = [Exception(), self.response]
-        data = Data(self.tender_id, self.award_ids[0], CODES[0], "company_name", {"meta": {"sourceRequests": [self.request_ids[0]]}})
+        data = Data(self.tender_id, self.award_ids[0], CODES[0], "company_name",
+                    {"meta": {"sourceRequests": [self.request_ids[0]]}})
         self.assertEqual(self.edrpou_codes_queue.get(), data)
         self.assertEqual(self.worker.sleep_change_value.time_between_requests, 0)
         gevent_sleep.assert_called_with_once(1)
@@ -167,7 +169,8 @@ class TestFilterWorker(unittest.TestCase):
         """ We must not lose tender after restart filter worker """
         gevent_sleep.side_effect = custom_sleep
         self.client.request.side_effect = [ResourceError(http_code=429), self.response]
-        data = Data(self.tender_id, self.award_ids[0], CODES[0], "company_name", {"meta": {"sourceRequests": [self.request_ids[0]]}})
+        data = Data(self.tender_id, self.award_ids[0], CODES[0], "company_name",
+                    {"meta": {"sourceRequests": [self.request_ids[0]]}})
         self.sleep_change_value.increment_step = 2
         self.sleep_change_value.decrement_step = 1
         self.assertEqual(self.edrpou_codes_queue.get(), data)
@@ -193,7 +196,8 @@ class TestFilterWorker(unittest.TestCase):
                                             'procurementMethodType': 'aboveThresholdEU',
                                             'awards': [self.awards(0, 0, AWARD_STATUS, CODES[0]),
                                                        self.awards(1, 1, 'unsuccessful', CODES[2])]}}))]
-        data = Data(self.tender_id, self.award_ids[0], CODES[0], "company_name", {"meta": {"sourceRequests": [self.request_ids[0]]}})
+        data = Data(self.tender_id, self.award_ids[0], CODES[0], "company_name",
+                    {"meta": {"sourceRequests": [self.request_ids[0]]}})
         self.assertEqual(self.edrpou_codes_queue.get(), data)
         self.assertItemsEqual(self.process_tracker.processing_items.keys(),
                               [item_key(self.tender_id, self.award_ids[0])])
@@ -213,7 +217,8 @@ class TestFilterWorker(unittest.TestCase):
                                        'procurementMethodType': 'aboveThresholdEU',
                                        'awards': [self.awards(i, i, AWARD_STATUS, CODES[0])]}})) for i in range(2)]
         for i in range(2):
-            data = Data(self.tender_id, self.award_ids[i], CODES[0], "company_name", {"meta": {"sourceRequests": [self.request_ids[i]]}})
+            data = Data(self.tender_id, self.award_ids[i], CODES[0], "company_name",
+                        {"meta": {"sourceRequests": [self.request_ids[i]]}})
             self.assertEqual(self.edrpou_codes_queue.get(), data)
         self.worker.immortal_jobs['prepare_data'].kill(timeout=1)
         self.assertItemsEqual(self.process_tracker.processing_items.keys(),
@@ -225,7 +230,8 @@ class TestFilterWorker(unittest.TestCase):
         filtered_tender_ids_queue = MagicMock()
         filtered_tender_ids_queue.peek.side_effect = [LoopExit(), self.tender_id]
         self.client.request.return_value = self.response
-        first_data = Data(self.tender_id, self.award_ids[0], CODES[0], "company_name", {"meta": {"sourceRequests": [self.request_ids[0]]}})
+        first_data = Data(self.tender_id, self.award_ids[0], CODES[0], "company_name",
+                          {"meta": {"sourceRequests": [self.request_ids[0]]}})
         self.worker.filtered_tender_ids_queue = filtered_tender_ids_queue
         self.assertEqual(self.edrpou_codes_queue.get(), first_data)
         self.assertItemsEqual(self.process_tracker.processing_items.keys(),
@@ -255,7 +261,8 @@ class TestFilterWorker(unittest.TestCase):
                                            'suppliers': [{'identifier': {'scheme': 'UA-EDR', 'id': CODES[1],
                                                                          "legalName": "company_name"}}],
                                            'lotID': '123456789'}]}}))
-        data = Data(self.tender_id, self.award_ids[0], CODES[0], "company_name", {"meta": {"sourceRequests": [self.request_ids[0]]}})
+        data = Data(self.tender_id, self.award_ids[0], CODES[0], "company_name",
+                    {"meta": {"sourceRequests": [self.request_ids[0]]}})
         self.assertEqual(self.edrpou_codes_queue.get(), data)
         self.assertItemsEqual(self.process_tracker.processing_items.keys(),
                               [item_key(self.tender_id, self.award_ids[0])])
@@ -322,7 +329,8 @@ class TestFilterWorker(unittest.TestCase):
 
     def test_process_response(self):
         res_json = {"data": {"id": 1, "awards": [{"status": "active", "id": 2, "bid_id": 1, "name": "naaame",
-                                                  "suppliers": [{"identifier": {"scheme": "UA-EDR", "legalName": "cname",
-                                                                                "id": 12345678}}]}]}}
+                                                  "suppliers": [
+                                                      {"identifier": {"scheme": "UA-EDR", "legalName": "cname",
+                                                                      "id": 12345678}}]}]}}
         response = MagicMock(body_string=MagicMock(return_value=dumps(res_json)))
         self.worker.process_response(response)

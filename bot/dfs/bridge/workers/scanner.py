@@ -20,7 +20,7 @@ logger = logging.getLogger(__name__)
 
 
 class Scanner(BaseWorker):
-    """ Edr API XmlData Bridge """
+    """ Edr API Data Bridge """
 
     def __init__(self, tenders_sync_client, filtered_tender_ids_queue, services_not_available, process_tracker,
                  sleep_change_value, delay=15):
@@ -70,12 +70,12 @@ class Scanner(BaseWorker):
                 if self.should_process_tender(tender):
                     yield tender
                 else:
-                    logger.info('Skipping tender {} with status {} with procurementMethodType {}'.format(
+                    logger.debug('Skipping tender {} with status {} with procurementMethodType {}'.format(
                         tender['id'], tender['status'], tender['procurementMethodType']),
                         extra=journal_context({"MESSAGE_ID": DATABRIDGE_INFO},
                                               params={"TENDER_ID": tender['id']}))
-            logger.info('Sleep {} sync...'.format(direction),
-                        extra=journal_context({"MESSAGE_ID": DATABRIDGE_SYNC_SLEEP}))
+            logger.debug('Sleep {} sync...'.format(direction),
+                         extra=journal_context({"MESSAGE_ID": DATABRIDGE_SYNC_SLEEP}))
             gevent.sleep(self.delay + self.sleep_change_value.time_between_requests)
             try:
                 response = self.tenders_sync_client.sync_tenders(params, extra_headers={
@@ -89,7 +89,8 @@ class Scanner(BaseWorker):
                     raise re
 
     def should_process_tender(self, tender):
-        return not self.process_tracker.check_processed_tenders(tender['id']) and valid_qualification_tender(tender)
+        return valid_qualification_tender(tender)
+        # return not self.process_tracker.check_processed_tenders(tender['id']) and valid_qualification_tender(tender)
 
     def get_tenders_forward(self):
         self.services_not_available.wait()
@@ -119,9 +120,9 @@ class Scanner(BaseWorker):
 
     def put_tenders_to_process(self, params, direction):
         for tender in self.get_tenders(params=params, direction=direction):
-            logger.info('Backward sync: Put tender {} to process...'.format(tender['id']),
-                        extra=journal_context({"MESSAGE_ID": DATABRIDGE_TENDER_PROCESS},
-                                              {"TENDER_ID": tender['id']}))
+            logger.debug('Backward sync: Put tender {} to process...'.format(tender['id']),
+                         extra=journal_context({"MESSAGE_ID": DATABRIDGE_TENDER_PROCESS},
+                                               {"TENDER_ID": tender['id']}))
             self.filtered_tender_ids_queue.put(tender['id'])
 
     def _start_jobs(self):
