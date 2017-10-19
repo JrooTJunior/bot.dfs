@@ -21,7 +21,6 @@ from constants import retry_mult
 from openprocurement_client.client import TendersClientSync as BaseTendersClientSync, TendersClient as BaseTendersClient
 from process_tracker import ProcessTracker
 from bot.dfs.bridge.workers.scanner import Scanner
-from bot.dfs.bridge.workers.request_for_reference import RequestForReference
 from requests_db import RequestsDb
 from requests_to_sfs import RequestsToSfs
 from caching import Db
@@ -112,13 +111,13 @@ class EdrDataBridge(object):
                                        sleep_change_value=self.sleep_change_value,
                                        delay=15)
 
-        self.request_for_reference = partial(RequestForReference.spawn,
-                                             reference_queue=self.reference_queue,
-                                             request_to_sfs=self.request_to_sfs,
-                                             request_db=self.request_db,
-                                             services_not_available=self.services_not_available,
-                                             sleep_change_value=self.sleep_change_value,
-                                             delay=self.delay)
+        # self.request_for_reference = partial(RequestForReference.spawn,
+        #                                      reference_queue=self.reference_queue,
+        #                                      request_to_sfs=self.request_to_sfs,
+        #                                      request_db=self.request_db,
+        #                                      services_not_available=self.services_not_available,
+        #                                      sleep_change_value=self.sleep_change_value,
+        #                                      delay=self.delay)
 
     def config_get(self, name):
         return self.config.get('main').get(name)
@@ -161,7 +160,9 @@ class EdrDataBridge(object):
     def _start_jobs(self):
         self.jobs = {'scanner': self.scanner(),
                      'filter_tender': self.filter_tender(),
-                     'request_for_reference': self.request_for_reference()}
+                     'sfs_reqs_worker': self.sfs_reqs_worker(),
+                     # 'request_for_reference': self.request_for_reference()
+                     }
 
     def launch(self):
         while True:
@@ -171,7 +172,7 @@ class EdrDataBridge(object):
             gevent.sleep(self.delay)
 
     def run(self):
-        logger.info('Start EDR API XmlData Bridge', extra=journal_context({"MESSAGE_ID": DATABRIDGE_START}, {}))
+        logger.info('Start EDR API Data Bridge', extra=journal_context({"MESSAGE_ID": DATABRIDGE_START}, {}))
         self._start_jobs()
         counter = 0
         try:
@@ -195,7 +196,7 @@ class EdrDataBridge(object):
 
     def check_and_revive_jobs(self):
         for name, job in self.jobs.items():
-            logger.info("{}.dead: {}".format(name, job.dead))
+            logger.debug("{}.dead: {}".format(name, job.dead))
             if job.dead:
                 self.revive_job(name)
 

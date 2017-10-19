@@ -2,10 +2,14 @@
 from gevent import monkey, sleep
 
 monkey.patch_all()
+import logging.config
+
 from datetime import datetime
 
 from bot.dfs.bridge.workers.base_worker import BaseWorker
 from bot.dfs.tests.utils import generate_request_id
+
+logger = logging.getLogger(__name__)
 
 
 class SfsWorker(BaseWorker):
@@ -27,7 +31,9 @@ class SfsWorker(BaseWorker):
     def send_sfs_request(self):
         while not self.exit:
             data = self.sfs_reqs_queue.get()
-            recent_reqs = self.requests_db.recent_requests_with(data.edr_code)
+            logger.info(u"got data from edrpou_codes_queue: {}".format(data))
+            recent_reqs = self.requests_db.recent_requests_with(data.code)
+            logger.info("Recent requests: {}".format(recent_reqs))
             if not recent_reqs:
                 self.process_new_request(data)
             else:
@@ -36,13 +42,16 @@ class SfsWorker(BaseWorker):
 
     def process_new_request(self, data):
         """Make a new request, bind award in question to it"""
+        logger.info(u"Processing new request: {}".format(data))
         request_id = generate_request_id()
         data.file_content['meta']['sourceRequests'].append(request_id)
         response = self.sfs_client.post(data, "", "", request_id)  # TODO: Here be answer from SFS
         self.requests_db.add_sfs_request(request_id, {"code": data.code, "tender_id": data.tender_id,
                                                       "name": data.name, "response": "placeholder"})
+        self.requests_db.add_award(data.tender_id, data.award_id, request_id)
 
     def process_existing_request(self, data, existing_request_id):
+        logger.info(u"Processing existing request: {};\t{}".format(data, existing_request_id))
         """bind award to existing request, load the answer which is already there into Central Database"""
         completed_reqs = self.requests_db.recent_complete_requests_with(data.code)
         if completed_reqs:  # this way we upload the completed request, not pending one

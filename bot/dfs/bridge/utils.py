@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import io
 from datetime import datetime, time
 from json import loads
 from logging import getLogger
@@ -6,11 +7,10 @@ from string import digits, uppercase
 from uuid import uuid4
 
 import os
-import yaml
-import io
 
-from constants import (AWARD_STATUS, DOC_TYPE, FORM_NAME, HOLIDAYS_FILE, TZ, qualification_procurementMethodType,
-                       tender_status, file_name)
+import yaml
+from constants import (AWARD_STATUS, DOC_TYPE, FORM_NAME, HOLIDAYS_FILE, TZ, file_name,
+                       qualification_procurementMethodType, tender_status)
 from restkit import ResourceError
 
 LOGGER = getLogger(__name__)
@@ -69,10 +69,10 @@ def is_code_invalid(code):
 
 
 def is_code_valid(code):
-    return is_edr_code_valid(code) or is_passport_valid(code) or is_vatin_valid(code)
+    return is_code_valid(code) or is_passport_valid(code) or is_vatin_valid(code)
 
 
-def is_edr_code_valid(code):
+def is_code_valid(code):
     return (len(str(code)) == 8 and
             (type(code) == int or (type(code) == str and code.isdigit()) or (type(code) == unicode and code.isdigit())))
 
@@ -96,11 +96,11 @@ def valid_qualification_tender(tender):
             tender['procurementMethodType'] in qualification_procurementMethodType)
 
 
-def sfs_file_name(edr_code, request_number):
+def sfs_file_name(code, request_number):
     date = datetime.now()
     m = to_base36(date.month)
     d = to_base36(date.day)
-    return "ieK{}{}{}{}{}{}.xml".format(edr_code, FORM_NAME, m, d, date.year, request_number)
+    return "ieK{}{}{}{}{}{}.xml".format(code, FORM_NAME, m, d, date.year, request_number)
 
 
 def to_base36(number):

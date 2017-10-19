@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from bot.dfs.bridge.utils import is_edr_code_valid, is_vatin_valid, is_passport_valid
+from bot.dfs.bridge.utils import is_code_valid, is_passport_valid, is_vatin_valid
 from constants import id_passport_len
 
 
@@ -15,7 +15,7 @@ class Data(object):
             self.first_name = names[-1]
             self.family_name = names[0]
             self.name = " ".join([self.last_name, self.first_name, self.family_name])
-        elif is_edr_code_valid(code):
+        elif is_code_valid(code):
             self.is_physical = False
             self.company_name = company_name
             self.name = self.company_name
@@ -29,7 +29,7 @@ class Data(object):
                 self.file_content == other.file_content)
 
     def __str__(self):
-        return "tender {} {} id: {}".format(self.tender_id, self.company_name[:-1], self.award_id)
+        return u"tender {} {} id: {} code {}".format(self.tender_id, self.name, self.award_id, self.code)
 
     def doc_id(self):
         return self.file_content['meta']['id']

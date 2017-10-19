@@ -75,7 +75,7 @@ class Scanner(BaseWorker):
                         extra=journal_context({"MESSAGE_ID": DATABRIDGE_INFO},
                                               params={"TENDER_ID": tender['id']}))
             logger.debug('Sleep {} sync...'.format(direction),
-                        extra=journal_context({"MESSAGE_ID": DATABRIDGE_SYNC_SLEEP}))
+                         extra=journal_context({"MESSAGE_ID": DATABRIDGE_SYNC_SLEEP}))
             gevent.sleep(self.delay + self.sleep_change_value.time_between_requests)
             try:
                 response = self.tenders_sync_client.sync_tenders(params, extra_headers={
@@ -120,9 +120,9 @@ class Scanner(BaseWorker):
 
     def put_tenders_to_process(self, params, direction):
         for tender in self.get_tenders(params=params, direction=direction):
-            logger.info('Backward sync: Put tender {} to process...'.format(tender['id']),
-                        extra=journal_context({"MESSAGE_ID": DATABRIDGE_TENDER_PROCESS},
-                                              {"TENDER_ID": tender['id']}))
+            logger.debug('Backward sync: Put tender {} to process...'.format(tender['id']),
+                         extra=journal_context({"MESSAGE_ID": DATABRIDGE_TENDER_PROCESS},
+                                               {"TENDER_ID": tender['id']}))
             self.filtered_tender_ids_queue.put(tender['id'])
 
     def _start_jobs(self):

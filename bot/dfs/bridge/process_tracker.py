@@ -1,6 +1,5 @@
 # coding=utf-8
 import pickle
-
 from datetime import datetime
 
 from caching import db_key

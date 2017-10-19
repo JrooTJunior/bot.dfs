@@ -14,8 +14,8 @@ from gevent import spawn
 
 from bot.dfs.bridge.workers.base_worker import BaseWorker
 from bot.dfs.bridge.utils import journal_context, create_file
-from bot.dfs.bridge.journal_msg_ids import DATABRIDGE_SUCCESS_UPLOAD_TO_DOC_SERVICE, \
-    DATABRIDGE_UNSUCCESS_UPLOAD_TO_DOC_SERVICE
+from bot.dfs.bridge.journal_msg_ids import (DATABRIDGE_SUCCESS_UPLOAD_TO_DOC_SERVICE,
+                                            DATABRIDGE_UNSUCCESS_UPLOAD_TO_DOC_SERVICE)
 from bot.dfs.bridge.constants import file_name, retry_mult
 
 logger = logging.getLogger(__name__)

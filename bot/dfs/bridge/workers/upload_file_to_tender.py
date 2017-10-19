@@ -16,8 +16,9 @@ from restkit import ResourceError
 
 from base_worker import BaseWorker
 from bot.dfs.bridge.utils import journal_context
-from bot.dfs.bridge.journal_msg_ids import DATABRIDGE_SUCCESS_UPLOAD_TO_TENDER, \
-    DATABRIDGE_UNSUCCESS_UPLOAD_TO_TENDER, DATABRIDGE_ITEM_STATUS_CHANGED_WHILE_PROCESSING
+from bot.dfs.bridge.journal_msg_ids import (DATABRIDGE_SUCCESS_UPLOAD_TO_TENDER,
+                                            DATABRIDGE_UNSUCCESS_UPLOAD_TO_TENDER,
+                                            DATABRIDGE_ITEM_STATUS_CHANGED_WHILE_PROCESSING)
 from bot.dfs.bridge.constants import retry_mult, DOC_TYPE
 
 logger = logging.getLogger(__name__)

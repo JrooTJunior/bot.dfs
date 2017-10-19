@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import os
+
 from pytz import timezone
 
 major = 0
@@ -20,4 +21,3 @@ qualification_procurementMethodType = ('aboveThresholdUA', 'aboveThresholdUA.def
 HOLIDAYS_FILE = 'working_days.json'
 TZ = timezone(os.environ['TZ'] if 'TZ' in os.environ else 'Europe/Kiev')
 file_name = "sfs_reference.yaml"
-

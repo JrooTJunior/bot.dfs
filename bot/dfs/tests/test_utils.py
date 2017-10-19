@@ -3,8 +3,6 @@ import subprocess
 from time import sleep
 from unittest import TestCase
 
-import os
-
 from bot.dfs.bridge.caching import Db, db_key
 from bot.dfs.bridge.process_tracker import ProcessTracker
 from bot.dfs.bridge.utils import *
@@ -139,11 +137,11 @@ class TestUtils(TestCase):
 
     @patch("bot.dfs.bridge.utils.datetime")
     @given(integers(), datetimes())
-    def test_file_name(self, datetime_mock, edr_code, h_date):
+    def test_file_name(self, datetime_mock, code, h_date):
         datetime_mock.now = MagicMock(return_value=h_date)
-        sample_name = "ieK{}{}{}{}{}1.xml".format(edr_code, FORM_NAME, to_base36(h_date.month),
+        sample_name = "ieK{}{}{}{}{}1.xml".format(code, FORM_NAME, to_base36(h_date.month),
                                                   to_base36(h_date.day), h_date.year)
-        self.assertEqual(sample_name, sfs_file_name(edr_code, 1))
+        self.assertEqual(sample_name, sfs_file_name(code, 1))
 
     def test_item_key(self):
         tender_id = '123'

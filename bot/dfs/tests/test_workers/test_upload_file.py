@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from gevent import monkey, event
+from gevent import event, monkey
 
 monkey.patch_all()
 

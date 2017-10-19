@@ -1,14 +1,11 @@
 # coding=utf-8
-from xmljson import parker, Parker
-from xml.etree.ElementTree import fromstring
-from json import dumps
 from uuid import uuid4
 
-from constants import version, author
+from constants import author, version
+from xmljson import parker
 
 
 class YamlFileCreator(object):
-
     def __init__(self):
         pass
 

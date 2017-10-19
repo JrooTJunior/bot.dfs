@@ -82,10 +82,10 @@ class TestRequestForReferenceWorker(BaseServersTest):
         rfr = RequestForReference(self.reference_queue, self.request_to_sfs, self.request_db, self.sna,
                                   self.sleep_change_value)
         for request_id, request_data in self.request_ids.items():
-            edr_code = []
+            code = []
             ca_name = ''
             cert = ''
-            self.assertIsNone(rfr.sfs_receiver(request_id, edr_code, ca_name, cert))
+            self.assertIsNone(rfr.sfs_receiver(request_id, code, ca_name, cert))
         self.assertIsNone(self.reference_queue.get()[1])
 
     def test_sfs_receiver_reference_queue_put_exception(self):
@@ -93,7 +93,7 @@ class TestRequestForReferenceWorker(BaseServersTest):
         rfr = RequestForReference(reference_queue, self.request_to_sfs, self.request_db, self.sna,
                                   self.sleep_change_value)
         for request_id, request_data in self.request_ids.items():
-            edr_code = request_data['code']
+            code = request_data['code']
             ca_name = ''
             cert = ''
-            self.assertIsNone(rfr.sfs_receiver(request_id, edr_code, ca_name, cert))
+            self.assertIsNone(rfr.sfs_receiver(request_id, code, ca_name, cert))
