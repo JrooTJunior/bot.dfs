@@ -1,13 +1,15 @@
 # -*- coding: utf-8 -*-
 from bot.dfs.bridge.utils import is_code_valid, is_passport_valid, is_vatin_valid
 from constants import id_passport_len
+from simplejson import dumps
 
 
 class Data(object):
-    def __init__(self, tender_id, award_id=None, code=None, company_name=None, file_content=None):
+    def __init__(self, tender_id, award_id=None, code='', company_name='', file_content=None):
         self.tender_id = tender_id
         self.award_id = award_id
         self.code = code
+        self.name = company_name
         if is_passport_valid(code) or is_vatin_valid(code):
             self.is_physical = True
             names = company_name.strip().split(" ")
@@ -29,7 +31,7 @@ class Data(object):
                 self.file_content == other.file_content)
 
     def __str__(self):
-        return u"tender {} {} id: {} code {}".format(self.tender_id, self.name, self.award_id, self.code)
+        return u"tender {} id: {} code {}".format(self.tender_id, self.award_id, self.code)
 
     def doc_id(self):
         return self.file_content['meta']['id']
@@ -43,3 +45,7 @@ class Data(object):
 
     def log_params(self):
         return {"TENDER_ID": self.tender_id, "AWARD_ID": self.award_id, "DOCUMENT_ID": self.doc_id()}
+
+    def db_dump(self):
+        return dumps({"tender_id": self.tender_id, "award_id": self.award_id, "code": self.code, "name": self.name,
+                      "file_content": self.file_content})

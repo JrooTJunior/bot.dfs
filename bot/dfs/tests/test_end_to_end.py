@@ -101,17 +101,17 @@ class EndToEndTest(BaseServersTest):
         super(EndToEndTest, self).tearDown()
         self.redis.flushall()
 
-    @patch('gevent.sleep')
-    def test_scanner_and_filter(self, gevent_sleep):
-        gevent_sleep.side_effect = custom_sleep
-        self.worker = EdrDataBridge(config)
-        setup_routing(self.api_server_bottle, get_tenders_response, path='/api/2.3/tenders')
-        setup_routing(self.api_server_bottle, get_tender_response, path='/api/2.3/tenders/123')
-        self.worker.scanner()
-        self.worker.filter_tender()
-        data = Data('123', award_ids[2], CODES[2], "company_name", {"meta": {"sourceRequests": [request_ids[0]]}})
-        # sleep(5)
-        sleep_until_done(self.worker, is_working_filter)
-        self.assertEqual(self.worker.edrpou_codes_queue.get(), data)
-        self.assertEqual(self.worker.edrpou_codes_queue.qsize(), 0)
-        self.assertEqual(self.worker.filtered_tender_ids_queue.qsize(), 0)
+    # @patch('gevent.sleep')
+    # def test_scanner_and_filter(self, gevent_sleep):
+    #     gevent_sleep.side_effect = custom_sleep
+    #     self.worker = EdrDataBridge(config)
+    #     setup_routing(self.api_server_bottle, get_tenders_response, path='/api/2.3/tenders')
+    #     setup_routing(self.api_server_bottle, get_tender_response, path='/api/2.3/tenders/123')
+    #     self.worker.scanner()
+    #     self.worker.filter_tender()
+    #     data = Data('123', award_ids[2], CODES[2], "company_name", {"meta": {"sourceRequests": [request_ids[0]]}})
+    #     # sleep(5)
+    #     sleep_until_done(self.worker, is_working_filter)
+    #     self.assertEqual(self.worker.edrpou_codes_queue.get(), data)
+    #     self.assertEqual(self.worker.edrpou_codes_queue.qsize(), 0)
+    #     self.assertEqual(self.worker.filtered_tender_ids_queue.qsize(), 0)

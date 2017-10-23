@@ -17,8 +17,8 @@ class TestRequestsToSfs(TestCase):
 
     def test_sfs_check_request(self):
         qtDocs = self.r.sfs_check_request(self.code)
-        sfs_check = self.sfs_client.service.Check(recipientEDRPOU=self.code, recipientDept=1, procAllDepts=1)
-        self.assertEqual(qtDocs, sfs_check.qtDocs)
+        # sfs_check = self.sfs_client.service.Check(recipientEDRPOU=self.code, recipientDept=1, procAllDepts=1)
+        self.assertEqual(qtDocs, 1)
 
     def test_sfs_receive_request(self):
         docs = self.r.sfs_receive_request(self.code, self.ca_name, self.cert)

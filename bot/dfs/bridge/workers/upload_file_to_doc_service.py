@@ -33,7 +33,8 @@ class UploadFileToDocService(BaseWorker):
         self.process_tracker = process_tracker
         # init client
         self.doc_service_client = doc_service_client
-
+        # receives (document_to_upload, tender_data_list)
+        # puts tender_data for tender_data in tender_data_list to the upload_to_tender_queue
         # init queues for workers
         self.upload_to_doc_service_queue = upload_to_doc_service_queue
         self.upload_to_tender_queue = upload_to_tender_queue
@@ -55,80 +56,82 @@ class UploadFileToDocService(BaseWorker):
 
     def try_peek_and_upload(self, is_retry):
         try:
-            tender_data = self.peek_from_queue(is_retry)
+            doc_and_tenders = self.peek_from_queue(is_retry)
         except LoopExit:
             gevent.sleep(0)
         else:
-            self.try_upload_to_doc_service(tender_data, is_retry)
+            self.try_upload_to_doc_service(doc_and_tenders, is_retry)
 
     def peek_from_queue(self, is_retry):
         return self.retry_upload_to_doc_service_queue.peek() if is_retry else self.upload_to_doc_service_queue.peek()
 
-    def try_upload_to_doc_service(self, tender_data, is_retry):
+    def try_upload_to_doc_service(self, doc_and_tenders, is_retry):
         try:
-            response = self.update_headers_and_upload(tender_data, is_retry)
+            response = self.update_headers_and_upload(doc_and_tenders[0], is_retry)
         except Exception as e:
-            self.remove_bad_data(tender_data, e, is_retry)
+            self.remove_bad_data(doc_and_tenders, e, is_retry)
         else:
-            self.move_to_tender_if_200(response, tender_data, is_retry)
+            self.move_to_tender_if_200(response, doc_and_tenders, is_retry)
 
-    def update_headers_and_upload(self, tender_data, is_retry):
+    def update_headers_and_upload(self, doc_to_upload, is_retry):
         if is_retry:
-            return self.update_headers_and_upload_retry(tender_data)
+            return self.update_headers_and_upload_retry(doc_to_upload)
         else:
-            return self.doc_service_client.upload(file_name, create_file(tender_data.file_content), 'application/yaml',
-                                                  headers={'X-Client-Request-ID': tender_data.doc_id()})
+            return self.doc_service_client.upload(file_name, create_file(doc_to_upload), 'application/yaml',
+                                                  headers={'X-Client-Request-ID': doc_to_upload["meta"]["id"]})
 
-    def update_headers_and_upload_retry(self, tender_data):
-        self.doc_service_client.headers.update({'X-Client-Request-ID': tender_data.doc_id()})
-        return self.client_upload_to_doc_service(tender_data)
+    def update_headers_and_upload_retry(self, doc_to_upload):
+        self.doc_service_client.headers.update({'X-Client-Request-ID': doc_to_upload["meta"]["id"]})
+        return self.client_upload_to_doc_service(doc_to_upload)
 
-    def remove_bad_data(self, tender_data, e, is_retry):
+    def remove_bad_data(self, doc_and_tenders, e, is_retry):
         logger.exception('Exception while uploading file to doc service {} doc_id: {}. Message: {}. {}'.
-                         format(tender_data, tender_data.doc_id(), e, "Removed tender data" if is_retry else ""),
+                         format(doc_and_tenders, doc_and_tenders[0]["meta"]["id"], e, "Removed tender data" if is_retry else ""),
                          extra=journal_context({"MESSAGE_ID": DATABRIDGE_UNSUCCESS_UPLOAD_TO_DOC_SERVICE},
-                                               tender_data.log_params()))
+                                               doc_and_tenders[1][0].log_params()))
         if is_retry:
             self.retry_upload_to_doc_service_queue.get()
-            self.process_tracker.update_items_and_tender(tender_data.tender_id, tender_data.award_id,
-                                                         tender_data.doc_id())
+            self.process_tracker.update_items_and_tender(doc_and_tenders[1][0].tender_id,
+                                                         doc_and_tenders[1][0].award_id,
+                                                         doc_and_tenders[1][0].doc_id())
             raise e
         else:
-            self.retry_upload_to_doc_service_queue.put(tender_data)
+            self.retry_upload_to_doc_service_queue.put(doc_and_tenders)
             self.upload_to_doc_service_queue.get()
 
-    def move_to_tender_if_200(self, response, tender_data, is_retry):
+    def move_to_tender_if_200(self, response, doc_and_tenders, is_retry):
         if response.status_code == 200:
-            self.move_to_tender_queue(tender_data, response, is_retry)
+            for tender in doc_and_tenders[1]:
+                self.move_to_tender_queue(tender, response)
+            if not is_retry:
+                self.upload_to_doc_service_queue.get()
+            else:
+                self.retry_upload_to_doc_service_queue.get()
         else:
-            self.move_data_to_retry_or_leave(response, tender_data, is_retry)
+            self.move_data_to_retry_or_leave(response, doc_and_tenders, is_retry)
 
-    def move_to_tender_queue(self, tender_data, response, is_retry):
-        data = tender_data
-        data.file_content = dict(response.json(), **{'meta': {'id': tender_data.doc_id()}})
+    def move_to_tender_queue(self, tender, response):
+        data = tender
+        data.file_content = dict(response.json(), **{'meta': {'id': tender.doc_id()}})
         self.upload_to_tender_queue.put(data)
-        if not is_retry:
-            self.upload_to_doc_service_queue.get()
-        else:
-            self.retry_upload_to_doc_service_queue.get()
-        logger.info('Successfully uploaded file to doc service {} doc_id: {}'.format(tender_data, tender_data.doc_id()),
+        logger.info(u'Successfully uploaded file to doc service {} doc_id: {}'.format(tender, tender.doc_id()),
                     extra=journal_context({"MESSAGE_ID": DATABRIDGE_SUCCESS_UPLOAD_TO_DOC_SERVICE},
-                                          tender_data.log_params()))
+                                          tender.log_params()))
 
-    def move_data_to_retry_or_leave(self, response, tender_data, is_retry):
-        logger.info('Not successful response from document service while uploading {} doc_id: {}. Response {}'.
-                    format(tender_data, tender_data.doc_id(), response.status_code),
+    def move_data_to_retry_or_leave(self, response, doc_and_tenders, is_retry):
+        logger.info('Unsuccessful response from document service while uploading {} doc_id: {}. Response {}'.
+                    format(doc_and_tenders, doc_and_tenders[0]["meta"]["id"], response.status_code),
                     extra=journal_context({"MESSAGE_ID": DATABRIDGE_UNSUCCESS_UPLOAD_TO_DOC_SERVICE},
-                                          tender_data.log_params()))
+                                          doc_and_tenders[1][0].log_params()))
         if not is_retry:
-            self.retry_upload_to_doc_service_queue.put(tender_data)
+            self.retry_upload_to_doc_service_queue.put(doc_and_tenders)
             self.upload_to_doc_service_queue.get()
 
     @retry(stop_max_attempt_number=5, wait_exponential_multiplier=retry_mult)
-    def client_upload_to_doc_service(self, tender_data):
+    def client_upload_to_doc_service(self, doc_to_upload):
         """Process upload request for retry queue objects."""
-        return self.doc_service_client.upload(file_name, create_file(tender_data.file_content), 'application/yaml',
-                                              headers={'X-Client-Request-ID': tender_data.doc_id()})
+        return self.doc_service_client.upload(file_name, create_file(doc_to_upload), 'application/yaml',
+                                              headers={'X-Client-Request-ID': doc_to_upload["meta"]["id"]})
 
     def _start_jobs(self):
         return {'upload_worker': spawn(self.upload_worker),

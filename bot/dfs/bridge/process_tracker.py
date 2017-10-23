@@ -53,7 +53,7 @@ class ProcessTracker(object):
 
     def _update_processing_items(self, tender_id, award_id, document_id):
         key = item_key(tender_id, award_id)
-        if self.processing_items[key] > 1:
+        if self.processing_items.get(key) > 1:
             self.processing_items[key] -= 1
         else:
             self.processed_items[key] = datetime.now()

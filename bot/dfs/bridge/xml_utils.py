@@ -45,3 +45,7 @@ def form_xml_to_post(data, request_id):
     hfill = SubElement(request, "HFILL")
     hfill.text = datetime.now().isoformat()
     logger.info("Request {} is valid? {}".format(request_id, is_valid(request)))
+
+
+def form_yaml_from_response():
+    return {"data": "placeholder"}

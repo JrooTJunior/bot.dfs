@@ -1,5 +1,8 @@
 # -*- coding: utf-8 -*-
+from bot.dfs.bridge.workers.request_for_reference import RequestForReference
 from bot.dfs.bridge.workers.sfs_worker import SfsWorker
+from bot.dfs.bridge.workers.upload_file_to_doc_service import UploadFileToDocService
+from bot.dfs.client import DocServiceClient
 from gevent import monkey
 
 monkey.patch_all()
@@ -64,10 +67,16 @@ class EdrDataBridge(object):
         self.sandbox_mode = os.environ.get('SANDBOX_MODE', 'False')
         self.time_to_live = self.config_get('time_to_live') or 300
         self.time_range = self.config_get('time_range') or 0
+        self.doc_service_host = self.config_get('doc_service_server')
+        self.doc_service_port = self.config_get('doc_service_port') or 6555
 
         # init clients
         self.tenders_sync_client = TendersClientSync('', host_url=ro_api_server, api_version=self.api_version)
         self.client = TendersClient(self.config_get('api_token'), host_url=api_server, api_version=self.api_version)
+        self.doc_service_client = DocServiceClient(host=self.doc_service_host,
+                                                   port=self.doc_service_port,
+                                                   user=self.config_get('doc_service_user'),
+                                                   password=self.config_get('doc_service_password'))
 
         # init queues for workers
         self.filtered_tender_ids_queue = Queue(maxsize=buffers_size)  # queue of tender IDs with appropriate status
@@ -111,13 +120,22 @@ class EdrDataBridge(object):
                                        sleep_change_value=self.sleep_change_value,
                                        delay=15)
 
-        # self.request_for_reference = partial(RequestForReference.spawn,
-        #                                      reference_queue=self.reference_queue,
-        #                                      request_to_sfs=self.request_to_sfs,
-        #                                      request_db=self.request_db,
-        #                                      services_not_available=self.services_not_available,
-        #                                      sleep_change_value=self.sleep_change_value,
-        #                                      delay=self.delay)
+        self.request_for_reference = partial(RequestForReference.spawn,
+                                             reference_queue=self.reference_queue,
+                                             request_to_sfs=self.request_to_sfs,
+                                             request_db=self.request_db,
+                                             services_not_available=self.services_not_available,
+                                             sleep_change_value=self.sleep_change_value,
+                                             delay=self.delay)
+
+        self.upload_file_to_doc_service = partial(UploadFileToDocService.spawn,
+                                                  upload_to_doc_service_queue=self.reference_queue,
+                                                  upload_to_tender_queue=self.upload_to_api_queue,
+                                                  process_tracker=self.process_tracker,
+                                                  doc_service_client=self.doc_service_client,
+                                                  services_not_available=self.services_not_available,
+                                                  sleep_change_value=self.sleep_change_value,
+                                                  delay=self.delay)
 
     def config_get(self, name):
         return self.config.get('main').get(name)
@@ -161,7 +179,8 @@ class EdrDataBridge(object):
         self.jobs = {'scanner': self.scanner(),
                      'filter_tender': self.filter_tender(),
                      'sfs_reqs_worker': self.sfs_reqs_worker(),
-                     # 'request_for_reference': self.request_for_reference()
+                     'request_for_reference': self.request_for_reference(),
+                     'upload_file_to_doc_service': self.upload_file_to_doc_service()
                      }
 
     def launch(self):
@@ -216,6 +235,7 @@ def main():
             config = load(config_file_obj.read())
         logging.config.dictConfig(config)
         bridge = EdrDataBridge(config)
+        logger.info("launching.....")
         bridge.launch()
     else:
         logger.info('Invalid configuration file. Exiting...')

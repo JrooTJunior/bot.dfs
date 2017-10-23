@@ -1,4 +1,7 @@
 # -*- coding: utf-8 -*-
+from uuid import uuid4
+
+from bot.dfs.bridge.data import Data
 from gevent import event, monkey
 
 monkey.patch_all()
@@ -53,20 +56,22 @@ class TestRequestForReferenceWorker(BaseServersTest):
     @patch('gevent.sleep')
     def test_sfs_checker(self, gevent_sleep):
         gevent_sleep.side_effect = custom_sleep
-        self.assertIsNone(self.reference_queue.get()[1])
+        self.assertEqual(self.reference_queue.get(), ({"meta": {"id": "123"}}, []))
 
     def test_check_incoming_correspondence(self):
         rfr = RequestForReference(self.reference_queue, self.request_to_sfs, self.request_db, self.sna,
                                   self.sleep_change_value)
         self.assertIsNone(rfr.check_incoming_correspondence(self.request_ids))
-        self.assertIsNone(self.reference_queue.get()[1])
+        # self.assertIsNone(self.reference_queue.get()[1])
+        self.assertEqual(self.reference_queue.get(), ({"meta": {"id": "123"}}, []))
 
     def test_check_incoming_correspondence_sfs_get_certificate_request_exception(self):
         request_to_sfs = ''
         rfr = RequestForReference(self.reference_queue, request_to_sfs, self.request_db, self.sna,
                                   self.sleep_change_value)
         self.assertIsNone(rfr.check_incoming_correspondence(self.request_ids))
-        self.assertIsNone(self.reference_queue.get()[1])
+        self.assertEqual(self.reference_queue.get(), ({"meta": {"id": "123"}}, []))
+
 
     def test_check_incoming_correspondence_sfs_check_request_exception(self):
         self.redis.flushall()
@@ -76,7 +81,7 @@ class TestRequestForReferenceWorker(BaseServersTest):
         rfr = RequestForReference(self.reference_queue, self.request_to_sfs, self.request_db, self.sna,
                                   self.sleep_change_value)
         self.assertIsNone(rfr.check_incoming_correspondence(self.request_ids))
-        self.assertIsNone(self.reference_queue.get()[1])
+        self.assertEqual(self.reference_queue.get(), ({"meta": {"id": "123"}}, []))
 
     def test_sfs_receiver_exception(self):
         rfr = RequestForReference(self.reference_queue, self.request_to_sfs, self.request_db, self.sna,
@@ -86,7 +91,7 @@ class TestRequestForReferenceWorker(BaseServersTest):
             ca_name = ''
             cert = ''
             self.assertIsNone(rfr.sfs_receiver(request_id, code, ca_name, cert))
-        self.assertIsNone(self.reference_queue.get()[1])
+        self.assertEqual(self.reference_queue.get(), ({"meta": {"id": "123"}}, []))
 
     def test_sfs_receiver_reference_queue_put_exception(self):
         reference_queue = ''
@@ -97,3 +102,14 @@ class TestRequestForReferenceWorker(BaseServersTest):
             ca_name = ''
             cert = ''
             self.assertIsNone(rfr.sfs_receiver(request_id, code, ca_name, cert))
+
+    def test_sfs_receiver(self):
+        reference_queue = Queue(10)
+        rfr = RequestForReference(reference_queue, self.request_to_sfs, self.request_db, self.sna,
+                                  self.sleep_change_value)
+        tender_id = uuid4().hex
+        award_id = uuid4().hex
+        request_id = uuid4().hex
+        data = Data(tender_id, award_id, "12345678", "comname", {"meta": {"id": 122}})
+        self.request_db.add_award(tender_id, award_id, request_id, data)
+        rfr.sfs_receiver(request_id, "12345678", "", "")

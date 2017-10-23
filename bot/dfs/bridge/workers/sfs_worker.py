@@ -48,17 +48,17 @@ class SfsWorker(BaseWorker):
         response = self.sfs_client.post(data, "", "", request_id)  # TODO: Here be answer from SFS
         self.requests_db.add_sfs_request(request_id, {"code": data.code, "tender_id": data.tender_id,
                                                       "name": data.name, "response": "placeholder"})
-        self.requests_db.add_award(data.tender_id, data.award_id, request_id)
+        self.requests_db.add_award(data.tender_id, data.award_id, request_id, data)
 
     def process_existing_request(self, data, existing_request_id):
         logger.info(u"Processing existing request: {};\t{}".format(data, existing_request_id))
         """bind award to existing request, load the answer which is already there into Central Database"""
         completed_reqs = self.requests_db.recent_complete_requests_with(data.code)
         if completed_reqs:  # this way we upload the completed request, not pending one
-            self.requests_db.add_award(data.tender_id, data.award_id, completed_reqs[0])
+            self.requests_db.add_award(data.tender_id, data.award_id, completed_reqs[0], data)
             self.upload_to_api_queue.put((data, self.requests_db.get_request(completed_reqs[0])))
         else:  # this way we upload receipt from existing request into the award
-            self.requests_db.add_award(data.tender_id, data.award_id, existing_request_id)
+            self.requests_db.add_award(data.tender_id, data.award_id, existing_request_id, data)
             self.upload_to_api_queue.put((data, self.requests_db.get_request(existing_request_id)))
 
     def _start_jobs(self):

@@ -37,8 +37,9 @@ class TestUploadFileWorker(unittest.TestCase):
         self.sleep_change_value = APIRateController()
         self.sna = event.Event()
         self.sna.set()
-        self.data = Data(self.tender_id, self.award_id, '12345678', 'awards',
-                         {'meta': {'id': self.document_id}, 'test_data': 'test_data'})
+        self.tender_data = Data(self.tender_id, self.award_id, '12345678', 'awards',
+                                {'meta': {'id': self.document_id}, 'test_data': 'test_data'})
+        self.data = ({'meta': {'id': self.document_id}, 'test_data': 'test_data'}, [self.tender_data])
         self.qualification_data = Data(self.tender_id, self.qualification_id, '12345678', 'qualifications',
                                        {'meta': {'id': self.document_id}, 'test_data': 'test_data'})
         self.doc_service_client = DocServiceClient(host='127.0.0.1', port='80', user='', password='')
@@ -134,7 +135,7 @@ class TestUploadFileWorker(unittest.TestCase):
         self.upload_to_doc_service_queue.put(self.data)
         self.shutdown_when_done(self.worker)
         self.assertEqual(self.upload_to_doc_service_queue.qsize(), 0, 'Queue should be empty')
-        self.assertEqual(self.upload_to_tender_queue.get(), self.data)
+        self.assertEqual(self.upload_to_tender_queue.get(), self.tender_data)
         self.assertEqual(self.process_tracker.processing_items, {item_key(self.tender_id, self.award_id): 1})
         self.assertEqual(mrequest.call_count, 1)
         self.assertEqual(mrequest.request_history[0].url, u'127.0.0.1:80/upload')
@@ -147,12 +148,10 @@ class TestUploadFileWorker(unittest.TestCase):
         mrequest.post(self.url, json=self.stat_200(), status_code=200)
         self.process_tracker.set_item(self.tender_id, self.qualification_id, 1)
         self.upload_to_doc_service_queue.put(self.data)
-        self.upload_to_doc_service_queue.put(self.qualification_data)
         self.shutdown_when_done(self.worker)
         self.assertEqual(self.upload_to_doc_service_queue.qsize(), 0, 'Queue should be empty')
-        self.assertEqual(self.upload_to_tender_queue.get(), self.data)
-        self.assertEqual(self.upload_to_tender_queue.get(), self.qualification_data)
-        self.assertEqual(mrequest.call_count, 2)
+        self.assertEqual(self.upload_to_tender_queue.get(), self.tender_data)
+        self.assertEqual(mrequest.call_count, 1)
         self.assertEqual(mrequest.request_history[0].url, u'127.0.0.1:80/upload')
         self.assertIsNotNone(mrequest.request_history[0].headers['X-Client-Request-ID'])
         self.assertEqual(self.process_tracker.processing_items,
@@ -168,8 +167,26 @@ class TestUploadFileWorker(unittest.TestCase):
         self.upload_to_doc_service_queue.put(self.data)
         self.upload_to_doc_service_queue.put(self.data)
         self.shutdown_when_done(self.worker)
-        self.assertEqual(self.upload_to_tender_queue.get(), self.data)
-        self.assertEqual(self.upload_to_tender_queue.get(), self.data)
+        self.assertEqual(self.upload_to_tender_queue.get(), self.tender_data)
+        self.assertEqual(self.upload_to_tender_queue.get(), self.tender_data)
+        self.assertEqual(self.upload_to_tender_queue.qsize(), 0)
+        self.assertEqual(mrequest.request_history[0].url, u'127.0.0.1:80/upload')
+        self.assertIsNotNone(mrequest.request_history[0].headers['X-Client-Request-ID'])
+
+    @requests_mock.Mocker()
+    @patch('gevent.sleep')
+    def test_processing_items_several_tenders(self, mrequest, gevent_sleep):
+        gevent_sleep.side_effect = custom_sleep
+        mrequest.post(self.url, [{'json': self.stat_200(), 'status_code': 200} for _ in range(2)])
+        self.process_tracker.set_item(self.tender_id, self.award_id, 2)
+        data = ({'meta': {'id': self.document_id}, 'test_data': 'test_data'}, [self.tender_data,
+                                                                               self.tender_data, self.tender_data])
+        self.upload_to_doc_service_queue.put(data)
+        self.shutdown_when_done(self.worker)
+        self.assertEqual(self.upload_to_tender_queue.get(), self.tender_data)
+        self.assertEqual(self.upload_to_tender_queue.get(), self.tender_data)
+        self.assertEqual(self.upload_to_tender_queue.get(), self.tender_data)
+        self.assertEqual(self.upload_to_tender_queue.qsize(), 0)
         self.assertEqual(mrequest.request_history[0].url, u'127.0.0.1:80/upload')
         self.assertIsNotNone(mrequest.request_history[0].headers['X-Client-Request-ID'])
 
@@ -185,7 +202,8 @@ class TestUploadFileWorker(unittest.TestCase):
         mrequest.post(self.url, [{'json': self.stat_200(), 'status_code': 200} for _ in range(2)])
         self.worker.start()
         sleep(1)
-        self.assertEqual(self.upload_to_tender_queue.get(), self.data)
+        self.assertEqual(self.upload_to_tender_queue.get(), self.tender_data)
+        self.assertEqual(self.upload_to_tender_queue.get(), self.tender_data)
         self.assertIsNotNone(mrequest.request_history[0].headers['X-Client-Request-ID'])
         self.assertIsNotNone(mrequest.request_history[1].headers['X-Client-Request-ID'])
         self.assertEqual(self.process_tracker.processing_items, {item_key(self.tender_id, self.award_id): 2})
@@ -203,7 +221,8 @@ class TestUploadFileWorker(unittest.TestCase):
         self.worker.start()
         sleep(1)
         self.worker.shutdown()
-        self.assertEqual(self.upload_to_tender_queue.get(), self.data)
+        self.assertEqual(self.upload_to_tender_queue.get(), self.tender_data)
+        self.assertEqual(self.upload_to_tender_queue.get(), self.tender_data)
         self.assertEqual(self.process_tracker.processing_items, {item_key(self.tender_id, self.award_id): 2})
         self.assertEqual(mrequest.request_history[0].url, u'127.0.0.1:80/upload')
         self.assertIsNotNone(mrequest.request_history[0].headers['X-Client-Request-ID'])
@@ -225,7 +244,8 @@ class TestUploadFileWorker(unittest.TestCase):
             self.worker.remove_bad_data(self.data, Exception("test message"), True)
 
         self.worker.retry_upload_to_doc_service_queue.get.assert_called_once()
-        self.worker.process_tracker.update_items_and_tender.assert_called_with(self.data.tender_id, self.data.award_id,
+        self.worker.process_tracker.update_items_and_tender.assert_called_with(self.tender_data.tender_id,
+                                                                               self.tender_data.award_id,
                                                                                self.document_id)
 
     def test_try_upload_to_doc_service(self):

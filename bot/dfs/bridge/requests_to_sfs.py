@@ -13,9 +13,9 @@ class RequestsToSfs(object):
         self.sfs_client = Client('http://obmen.sfs.gov.ua/SwinEd.asmx?WSDL')
 
     def sfs_check_request(self, code):
-        sfs_check = self.sfs_client.service.Check(recipientEDRPOU=code, recipientDept=1, procAllDepts=1)
-        qtDocs = sfs_check.qtDocs
-        return qtDocs
+        # sfs_check = self.sfs_client.service.Check(recipientEDRPOU=code, recipientDept=1, procAllDepts=1)
+        # qtDocs = sfs_check.qtDocs
+        return 1
 
     def sfs_receive_request(self, code, ca_name, cert):
         logger.info(u"Pretended to send sfs_receive_request({}, {}, {})".format(code, ca_name, cert))
