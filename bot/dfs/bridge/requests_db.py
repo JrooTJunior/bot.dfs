@@ -1,6 +1,9 @@
 # coding=utf-8
 from time import time
 
+from bot.dfs.bridge.data import Data
+from simplejson import loads
+
 
 class RequestsDb(object):
     """This class abstracts away logic of interacting with database (redis)"""
@@ -13,7 +16,7 @@ class RequestsDb(object):
     def add_sfs_request(self, request_id, request_data):
         self._db.hmset(req_key(request_id), request_data)
         self._db.sadd("requests:pending", request_id)
-        self._db.sadd("requests:edrpou:{}".format(request_data['edr_code']), request_id)
+        self._db.sadd("requests:edrpou:{}".format(request_data['code']), request_id)
         self._db.zadd("requests:dates", time(), request_id)
 
     def get_pending_requests(self):
@@ -27,22 +30,36 @@ class RequestsDb(object):
         self._db.sadd("requests:complete", request_id)
         self._db.hset(req_key(request_id), "status", "complete")
 
-    def add_award(self, tender_id, award_id, request_id):
-        self._db.put(award_key(tender_id, award_id), request_id)
+    def add_award(self, tender_id, award_id, request_id, data):
+        self._db.hmset(award_key(tender_id, award_id), {"request_id": request_id, "data": data.db_dump()})
+        # self._db.put(award_key(tender_id, award_id), request_id)
         self._db.sadd("tenders_of:{}".format(request_id), award_key(tender_id, award_id))
 
-    def recent_requests_with(self, edr_code):
-        self._db.zinterstore("recent:requests:edrpou:{}".format(edr_code), ("requests:edrpou:{}".format(edr_code),
-                                                                            "requests:dates"))
-        return self._db.zrangebyscore("recent:requests:edrpou:{}".format(edr_code), time() - self.time_range, time())
+    def recent_requests_with(self, code):
+        # if self._db.has("requests:dates") and self._db.has("request:edrpou"):
+        self._db.zinterstore("recent:requests:edrpou:{}".format(code), ("requests:edrpou:{}".format(code),
+                                                                        "requests:dates"))
+        return self._db.zrangebyscore("recent:requests:edrpou:{}".format(code), time() - self.time_range, time())
 
-    def complete_requests_with(self, edr_code):
-        return self._db.sinter("complete:requests:with", ("requests:edrpou:{}".format(edr_code), "requests:complete"))
+    def complete_requests_with(self, code):
+        return self._db.sinter("complete:requests:with", ("requests:edrpou:{}".format(code), "requests:complete"))
 
-    def recent_complete_requests_with(self, edr_code):
-        self._db.zinterstore("recent:complete:edrpou:{}:".format(edr_code), ("requests:edrpou:{}".format(edr_code),
-                                                                             "requests:dates"))
-        return self._db.zrangebyscore("recent:complete:edrpou:{}:".format(edr_code), time() - self.time_range, time())
+    def recent_complete_requests_with(self, code):
+        self._db.zinterstore("recent:complete:edrpou:{}:".format(code), ("requests:edrpou:{}".format(code),
+                                                                         "requests:dates"))
+        return self._db.zrangebyscore("recent:complete:edrpou:{}:".format(code), time() - self.time_range, time())
+
+    def get_award(self, key):
+        return self._db.hgetall(key)
+
+    def get_tenders_of_request(self, request_id):
+        tender_dicts = [self.get_award(key) for key in self._db.smembers("tenders_of:{}".format(request_id))]
+        all_the_data = []
+        for tender_dict in tender_dicts:
+            t_data = loads(tender_dict["data"])
+            data = Data(t_data['tender_id'], t_data['award_id'], t_data['code'], t_data['name'], t_data['file_content'])
+            all_the_data.append(data)
+        return all_the_data
 
     def add_daily_request(self):
         self._db.incr("requests:number")

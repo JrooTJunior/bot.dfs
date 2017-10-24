@@ -1,5 +1,9 @@
 # -*- coding: utf-8 -*-
-from bot.dfs.bridge.sfs_worker import SfsWorker
+from bot.dfs.bridge.workers.request_for_reference import RequestForReference
+from bot.dfs.bridge.workers.sfs_worker import SfsWorker
+from bot.dfs.bridge.workers.upload_file_to_doc_service import UploadFileToDocService
+from bot.dfs.bridge.workers.upload_file_to_tender import UploadFileToTender
+from bot.dfs.client import DocServiceClient
 from gevent import monkey
 
 monkey.patch_all()
@@ -20,12 +24,11 @@ from constants import retry_mult
 
 from openprocurement_client.client import TendersClientSync as BaseTendersClientSync, TendersClient as BaseTendersClient
 from process_tracker import ProcessTracker
-from scanner import Scanner
-from request_for_reference import RequestForReference
+from bot.dfs.bridge.workers.scanner import Scanner
 from requests_db import RequestsDb
 from requests_to_sfs import RequestsToSfs
 from caching import Db
-from filter_tender import FilterTenders
+from bot.dfs.bridge.workers.filter_tender import FilterTenders
 from utils import journal_context, check_412
 from journal_msg_ids import (DATABRIDGE_RESTART_WORKER, DATABRIDGE_START, DATABRIDGE_DOC_SERVICE_CONN_ERROR)
 
@@ -50,6 +53,7 @@ class EdrDataBridge(object):
     """ Edr API Data Bridge """
 
     def __init__(self, config):
+        logger.info("initialization start")
         super(EdrDataBridge, self).__init__()
         self.config = config
 
@@ -64,14 +68,20 @@ class EdrDataBridge(object):
         self.sandbox_mode = os.environ.get('SANDBOX_MODE', 'False')
         self.time_to_live = self.config_get('time_to_live') or 300
         self.time_range = self.config_get('time_range') or 0
+        self.doc_service_host = self.config_get('doc_service_server')
+        self.doc_service_port = self.config_get('doc_service_port') or 6555
 
         # init clients
         self.tenders_sync_client = TendersClientSync('', host_url=ro_api_server, api_version=self.api_version)
         self.client = TendersClient(self.config_get('api_token'), host_url=api_server, api_version=self.api_version)
+        self.doc_service_client = DocServiceClient(host=self.doc_service_host,
+                                                   port=self.doc_service_port,
+                                                   user=self.config_get('doc_service_user'),
+                                                   password=self.config_get('doc_service_password'))
 
         # init queues for workers
         self.filtered_tender_ids_queue = Queue(maxsize=buffers_size)  # queue of tender IDs with appropriate status
-        self.edrpou_codes_queue = Queue(maxsize=buffers_size)  # queue with edrpou codes (Data objects stored in it)
+        self.edrpou_codes_queue = Queue(maxsize=buffers_size)  # queue with edrpou codes (XmlData objects stored in it)
         self.reference_queue = Queue(maxsize=buffers_size)  # queue of request IDs and documents
         self.upload_to_api_queue = Queue(maxsize=buffers_size)  # queue with data to upload back into central DB
 
@@ -119,6 +129,23 @@ class EdrDataBridge(object):
                                              sleep_change_value=self.sleep_change_value,
                                              delay=self.delay)
 
+        self.upload_file_to_doc_service = partial(UploadFileToDocService.spawn,
+                                                  upload_to_doc_service_queue=self.reference_queue,
+                                                  upload_to_tender_queue=self.upload_to_api_queue,
+                                                  process_tracker=self.process_tracker,
+                                                  doc_service_client=self.doc_service_client,
+                                                  services_not_available=self.services_not_available,
+                                                  sleep_change_value=self.sleep_change_value,
+                                                  delay=self.delay)
+
+        self.upload_file_to_tender = partial(UploadFileToTender.spawn,
+                                             client=self.client,
+                                             upload_to_tender_queue=self.upload_to_api_queue,
+                                             process_tracker=self.process_tracker,
+                                             services_not_available=self.services_not_available,
+                                             sleep_change_value=self.sleep_change_value,
+                                             delay=self.delay)
+
     def config_get(self, name):
         return self.config.get('main').get(name)
 
@@ -160,7 +187,11 @@ class EdrDataBridge(object):
     def _start_jobs(self):
         self.jobs = {'scanner': self.scanner(),
                      'filter_tender': self.filter_tender(),
-                     'request_for_reference': self.request_for_reference()}
+                     'sfs_reqs_worker': self.sfs_reqs_worker(),
+                     'request_for_reference': self.request_for_reference(),
+                     'upload_file_to_doc_service': self.upload_file_to_doc_service(),
+                     'upload_file_to_tender': self.upload_file_to_tender()
+                     }
 
     def launch(self):
         while True:
@@ -180,10 +211,12 @@ class EdrDataBridge(object):
                 if counter == 20:
                     counter = 0
                     logger.info(
-                        'Current state: Filtered tenders {}; Edrpou codes queue {}; References queue {}'.format(
+                        'Current state: Filtered tenders {}; Edrpou codes queue {}; References queue {};'
+                        'Upload to API queue: {}'.format(
                             self.filtered_tender_ids_queue.qsize(),
                             self.edrpou_codes_queue.qsize(),
-                            self.reference_queue.qsize()))
+                            self.reference_queue.qsize(),
+                            self.upload_to_api_queue.qsize()))
                 counter += 1
                 self.check_and_revive_jobs()
         except KeyboardInterrupt:
@@ -194,7 +227,7 @@ class EdrDataBridge(object):
 
     def check_and_revive_jobs(self):
         for name, job in self.jobs.items():
-            logger.info("{}.dead: {}".format(name, job.dead))
+            logger.debug("{}.dead: {}".format(name, job.dead))
             if job.dead:
                 self.revive_job(name)
 
@@ -205,7 +238,7 @@ class EdrDataBridge(object):
 
 
 def main():
-    parser = argparse.ArgumentParser(description='Edr API Data Bridge')
+    parser = argparse.ArgumentParser(description='Edr API XmlData Bridge')
     parser.add_argument('config', type=str, help='Path to configuration file')
     parser.add_argument('--tender', type=str, help='Tender id to sync', dest="tender_id")
     params = parser.parse_args()
@@ -214,6 +247,7 @@ def main():
             config = load(config_file_obj.read())
         logging.config.dictConfig(config)
         bridge = EdrDataBridge(config)
+        logger.info("launching.....")
         bridge.launch()
     else:
         logger.info('Invalid configuration file. Exiting...')

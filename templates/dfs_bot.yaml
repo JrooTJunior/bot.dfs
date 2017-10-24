@@ -4,6 +4,16 @@ main:
   public_tenders_api_server: ${options['public_tenders_api_server']}
   api_token: "${options['api_token']}"
   buffers_size: ${options['buffers_size']}
+  full_stack_sync_delay: ${options['full_stack_sync_delay']}
+  empty_stack_sync_delay: ${options['empty_stack_sync_delay']}
+  on_error_sleep_delay: ${options['on_error_sleep_delay']}
+  delay: ${options['delay']}
+  increment_step: ${options['increment_step']}
+  decrement_step: ${options['decrement_step']}
+  doc_service_server: ${options['doc_service_server']}
+  doc_service_port: ${options['doc_service_port']}
+  doc_service_user: ${options['doc_service_user']}
+  doc_service_password: ${options['doc_service_password']}
   cache_db_name: ${options['cache_db_name']}
   cache_host: ${options['cache_host']}
   cache_port: ${options['cache_port']}
@@ -23,19 +33,12 @@ handlers:
     formatter: simple
     stream: ext://sys.stdout
 
-  journal:
-    class: ExtendedJournalHandler.ExtendedJournalHandler
-    level: INFO
-    SYSLOG_IDENTIFIER: BOT_IDENTIFICATION_BRIDGE
-    TENDERS_API_VERSION: "${options['tenders_api_version']}"
-    TENDERS_API_URL: ${options['tenders_api_server']}
-
 loggers:
-  openprocurement.bot.identification.databridge:
-    handlers: [console, journal]
+  bot.dfs:
+    handlers: [console]
     propagate: no
     level: DEBUG
 
   "":
-    handlers: [console, journal]
+    handlers: [console]
     level: DEBUG
