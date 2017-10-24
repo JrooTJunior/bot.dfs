@@ -2,6 +2,7 @@
 from bot.dfs.bridge.workers.request_for_reference import RequestForReference
 from bot.dfs.bridge.workers.sfs_worker import SfsWorker
 from bot.dfs.bridge.workers.upload_file_to_doc_service import UploadFileToDocService
+from bot.dfs.bridge.workers.upload_file_to_tender import UploadFileToTender
 from bot.dfs.client import DocServiceClient
 from gevent import monkey
 
@@ -137,6 +138,14 @@ class EdrDataBridge(object):
                                                   sleep_change_value=self.sleep_change_value,
                                                   delay=self.delay)
 
+        self.upload_file_to_tender = partial(UploadFileToTender.spawn,
+                                             client=self.client,
+                                             upload_to_tender_queue=self.upload_to_api_queue,
+                                             process_tracker=self.process_tracker,
+                                             services_not_available=self.services_not_available,
+                                             sleep_change_value=self.sleep_change_value,
+                                             delay=self.delay)
+
     def config_get(self, name):
         return self.config.get('main').get(name)
 
@@ -180,7 +189,8 @@ class EdrDataBridge(object):
                      'filter_tender': self.filter_tender(),
                      'sfs_reqs_worker': self.sfs_reqs_worker(),
                      'request_for_reference': self.request_for_reference(),
-                     'upload_file_to_doc_service': self.upload_file_to_doc_service()
+                     'upload_file_to_doc_service': self.upload_file_to_doc_service(),
+                     'upload_file_to_tender': self.upload_file_to_tender()
                      }
 
     def launch(self):
@@ -201,10 +211,12 @@ class EdrDataBridge(object):
                 if counter == 20:
                     counter = 0
                     logger.info(
-                        'Current state: Filtered tenders {}; Edrpou codes queue {}; References queue {}'.format(
+                        'Current state: Filtered tenders {}; Edrpou codes queue {}; References queue {};'
+                        'Upload to API queue: {}'.format(
                             self.filtered_tender_ids_queue.qsize(),
                             self.edrpou_codes_queue.qsize(),
-                            self.reference_queue.qsize()))
+                            self.reference_queue.qsize(),
+                            self.upload_to_api_queue.qsize()))
                 counter += 1
                 self.check_and_revive_jobs()
         except KeyboardInterrupt:

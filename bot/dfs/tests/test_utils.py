@@ -164,7 +164,7 @@ class TestUtils(TestCase):
         self.assertFalse(is_no_document_in_edr(response, res_json))
 
     def test_should_process_item(self):
-        item = {'status': 'active', 'documents': [{'documentType': 'sfsConfirmation'}]}
+        item = {'status': 'active', 'documents': [{'documentType': 'registerExtract'}]}
         self.assertFalse(should_process_item(item))
 
     def test_is_code_invalid(self):
