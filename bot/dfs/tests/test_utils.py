@@ -67,29 +67,6 @@ class TestUtils(TestCase):
         self.db.put("111", "test data")
         self.assertTrue(self.db.has("111"))
 
-    def test_set_item(self):
-        self.assertEqual(self.process_tracker.processing_items, {})
-        self.assertEqual(self.process_tracker.tender_documents_to_process, {})
-        self.process_tracker.set_item(self.tender_id, self.award_id, 1)
-        self.assertEqual(self.process_tracker.processing_items, {item_key(self.tender_id, self.award_id): 1})
-        self.assertEqual(self.process_tracker.tender_documents_to_process, {db_key(self.tender_id): 1})
-
-    def test_add_docs_amount_to_tender(self):
-        self.assertEqual(self.process_tracker.tender_documents_to_process, {})
-        self.process_tracker._add_docs_amount_to_tender(self.tender_id, 2)
-        self.assertEqual(self.process_tracker.tender_documents_to_process, {db_key(self.tender_id): 2})
-        self.process_tracker._add_docs_amount_to_tender(self.tender_id, 3)
-        self.assertEqual(self.process_tracker.tender_documents_to_process, {db_key(self.tender_id): 5})
-
-    def test_remove_docs_amount_from_tender(self):
-        self.assertEqual(self.process_tracker.tender_documents_to_process, {})
-        self.process_tracker.tender_documents_to_process = {db_key(self.tender_id): 2}
-        self.assertEqual(self.process_tracker.tender_documents_to_process, {db_key(self.tender_id): 2})
-        self.process_tracker._remove_docs_amount_from_tender(self.tender_id)
-        self.assertEqual(self.process_tracker.tender_documents_to_process, {db_key(self.tender_id): 1})
-        self.process_tracker._remove_docs_amount_from_tender(self.tender_id)
-        self.assertEqual(self.process_tracker.tender_documents_to_process, {})
-
     def test_check_processing_item(self):
         self.assertEqual(self.process_tracker.processing_items, {})
         self.assertFalse(self.process_tracker.check_processing_item(self.tender_id, self.award_id))

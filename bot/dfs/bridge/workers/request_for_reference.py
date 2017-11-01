@@ -73,10 +73,11 @@ class RequestForReference(BaseWorker):
             logger.warning(u'Fail to check for incoming correspondence. Message {}'.format(e.message))
             sleep()
         else:
+            self.request_db.complete_request(request_id)
             try:
                 logger.info('Put request_id {} to process...'.format(request_id))
                 all_the_data = self.request_db.get_tenders_of_request(request_id)
-                yamled_data = {"meta": {"id": "123"}} # TODO: placeholder; presume it will contain stuff needed
+                yamled_data = {"meta": {"id": "123"}}  # TODO: placeholder; presume it will contain stuff needed
                 for data in all_the_data:
                     data.file_content['meta'].update(yamled_data['meta'])
                 self.reference_queue.put((yamled_data, all_the_data))
