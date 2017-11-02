@@ -3,7 +3,7 @@ import subprocess
 from time import sleep
 from unittest import TestCase
 
-from bot.dfs.bridge.caching import Db, db_key
+from bot.dfs.bridge.caching import Db
 from bot.dfs.bridge.process_tracker import ProcessTracker
 from bot.dfs.bridge.utils import *
 from hypothesis import given

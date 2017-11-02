@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-from bot.dfs.bridge.data import Data
 from gevent import monkey
 
 monkey.patch_all()
@@ -9,7 +8,7 @@ from datetime import datetime
 from gevent import spawn, sleep
 
 from bot.dfs.bridge.workers.base_worker import BaseWorker
-from bot.dfs.bridge.utils import business_date_checker, generate_doc_id
+from bot.dfs.bridge.utils import business_date_checker
 
 logger = logging.getLogger(__name__)
 
@@ -43,7 +42,7 @@ class RequestForReference(BaseWorker):
                     logger.warning(u'Fail to get pending requests. Message {}'.format(e.message))
                 else:
                     self.check_incoming_correspondence(request_ids)
-            sleep(15)
+            sleep(self.delay)
 
     def check_incoming_correspondence(self, request_ids):
         for request_id, request_data in request_ids.items():
