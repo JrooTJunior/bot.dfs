@@ -103,3 +103,8 @@ bin
 downloads
 build
 dist
+
+# Ignore all certificates and key instead of SFS1-2
+*.cer
+!SFS[12].cer
+Key-6.dat
