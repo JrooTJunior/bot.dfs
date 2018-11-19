@@ -19,6 +19,9 @@ main:
   cache_port: ${options['cache_port']}
   time_to_live: ${options['time_to_live']}
   time_to_live_negative: ${options['time_to_live_negative']}
+  certificates_path: ${options['certificates_path']}
+  key_path: ${options['key_path']}
+  psz_password: ${options['psz_password']}
 
 version: 1
 
