@@ -1,10 +1,13 @@
 # -*- coding: utf-8 -*-
+from gevent import monkey
+
+from bot.dfs.bridge.sfs.api import SfsApiClient
+from bot.dfs.bridge.sfs.euscp import EUSignCP
 from bot.dfs.bridge.workers.request_for_reference import RequestForReference
 from bot.dfs.bridge.workers.sfs_worker import SfsWorker
 from bot.dfs.bridge.workers.upload_file_to_doc_service import UploadFileToDocService
 from bot.dfs.bridge.workers.upload_file_to_tender import UploadFileToTender
 from bot.dfs.client import DocServiceClient
-from gevent import monkey
 
 monkey.patch_all()
 
@@ -26,7 +29,6 @@ from openprocurement_client.client import TendersClientSync as BaseTendersClient
 from process_tracker import ProcessTracker
 from bot.dfs.bridge.workers.scanner import Scanner
 from requests_db import RequestsDb
-from requests_to_sfs import RequestsToSfs
 from caching import Db
 from bot.dfs.bridge.workers.filter_tender import FilterTenders
 from utils import journal_context, check_412
@@ -92,7 +94,13 @@ class EdrDataBridge(object):
         self.db = Db(config)
         self.process_tracker = ProcessTracker(self.db, self.time_to_live)
         self.request_db = RequestsDb(self.db, self.time_range)
-        self.request_to_sfs = RequestsToSfs()
+        # self.request_to_sfs = RequestsToSfs()
+
+        self.euscp = EUSignCP(key=self.config_get('key_path'),
+                              password=self.config_get('psz_password'),
+                              certificate_name='',
+                              certificates_dir=self.config_get('certificates_path'))
+        self.sfs_client = SfsApiClient(self.euscp)
 
         # Workers
         self.scanner = partial(Scanner.spawn,
@@ -112,7 +120,7 @@ class EdrDataBridge(object):
                                      sleep_change_value=self.sleep_change_value,
                                      delay=self.delay)
 
-        self.sfs_reqs_worker = partial(SfsWorker.spawn, sfs_client=self.request_to_sfs,
+        self.sfs_reqs_worker = partial(SfsWorker.spawn, sfs_client=self.sfs_client,
                                        sfs_reqs_queue=self.edrpou_codes_queue,
                                        upload_to_api_queue=self.upload_to_api_queue,
                                        process_tracker=self.process_tracker,
@@ -123,7 +131,7 @@ class EdrDataBridge(object):
 
         self.request_for_reference = partial(RequestForReference.spawn,
                                              reference_queue=self.reference_queue,
-                                             request_to_sfs=self.request_to_sfs,
+                                             sfs_client=self.sfs_client,
                                              request_db=self.request_db,
                                              services_not_available=self.services_not_available,
                                              sleep_change_value=self.sleep_change_value,

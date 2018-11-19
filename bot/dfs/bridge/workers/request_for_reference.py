@@ -16,12 +16,12 @@ logger = logging.getLogger(__name__)
 class RequestForReference(BaseWorker):
     """ Edr API XmlData Bridge """
 
-    def __init__(self, reference_queue, request_to_sfs, request_db, services_not_available, sleep_change_value,
+    def __init__(self, reference_queue, sfs_client, request_db, services_not_available, sleep_change_value,
                  delay=15):
         super(RequestForReference, self).__init__(services_not_available)
         self.start_time = datetime.now()
         self.delay = delay
-        self.request_to_sfs = request_to_sfs
+        self.sfs_client = sfs_client
         self.request_db = request_db
 
         # init queues for workers
