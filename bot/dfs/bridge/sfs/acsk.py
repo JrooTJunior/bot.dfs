@@ -52,7 +52,7 @@ class Acsk:
     @classmethod
     def load(cls, acsk_id, certificates_dir):
         # type: (int, str) -> Acsk
-        cas = CAsLoader(acsk_id).get()
+        cas = CAsLoader(acsk_id, certificates_dir).get()
         return cls(cas, acsk_id, certificates_dir)
 
     def set_storage_settings(self, euscp, path):

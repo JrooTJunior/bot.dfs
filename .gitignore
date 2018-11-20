@@ -108,3 +108,4 @@ dist
 *.cer
 !SFS[12].cer
 Key-6.dat
+.CAs.json
