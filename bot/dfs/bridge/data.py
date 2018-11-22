@@ -31,7 +31,7 @@ class Data(object):
                 self.file_content == other.file_content)
 
     def __str__(self):
-        return u"tender {} id: {} code {}".format(self.tender_id, self.award_id, self.code)
+        return u"tender {} id: {} code {}: physical".format(self.tender_id, self.award_id, self.code)
 
     def doc_id(self):
         return self.file_content['meta']['id']

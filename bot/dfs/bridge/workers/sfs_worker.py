@@ -1,5 +1,9 @@
 # coding=utf-8
+import random
 from gevent import monkey, sleep
+
+from bot.dfs.bridge.sfs.exceptions import SfsApiError, SfsJsonApiError
+from bot.dfs.bridge.xml_utils import generate_request
 
 monkey.patch_all()
 import logging.config
@@ -7,7 +11,6 @@ import logging.config
 from datetime import datetime
 
 from bot.dfs.bridge.workers.base_worker import BaseWorker
-from bot.dfs.tests.utils import generate_request_id
 
 logger = logging.getLogger(__name__)
 
@@ -43,11 +46,9 @@ class SfsWorker(BaseWorker):
     def process_new_request(self, data):
         """Make a new request, bind award in question to it"""
         logger.info(u"Processing new request: {}".format(data))
-        request_id = generate_request_id()
-        data.file_content['meta']['sourceRequests'].append(request_id)
-        response = self.sfs_client.post(data, "", "", request_id)  # TODO: Here be answer from SFS
+        request_id = self.send_request(data)
         self.requests_db.add_sfs_request(request_id, {"code": data.code, "tender_id": data.tender_id,
-                                                      "name": data.name, "response": "placeholder"})
+                                                      "name": data.name, "kvt2": "", "doc_url": ""})
         self.requests_db.add_award(data.tender_id, data.award_id, request_id, data)
 
     def process_existing_request(self, data, existing_request_id):
@@ -64,3 +65,34 @@ class SfsWorker(BaseWorker):
 
     def _start_jobs(self):
         return {"send_sfs_request": self.send_sfs_request()}
+
+    def send_request(self, data):
+        request_id = random.randint(0, 1000)
+        try:
+            data.code = '1234567890'  # TODO: change
+            content, fname = generate_request(data, request_id)  # data -> Encrypted XML + filename
+
+        except ValueError as e:
+            logger.exception('Generating request for {code} failed: {e}'.format(code=data.code, e=e))
+            raise
+
+        try:
+            response = self.sfs_client.send_report(content, fname)
+        except SfsJsonApiError as e:
+            print(e.response_data)
+            logger.error('Request for code {code} failed: {e}'.format(code=data.code, e=e))
+            return False
+
+        if response.status == 'OK':
+            logger.info('Request for {code} accepted.'.format(code=data.code))
+            # response = self.sfs_client.extract_data(response.kvtList[0].kvtBase64)  # Encrypted Base64 -> XML
+            return response.id
+
+        logger.error(
+            'Request for {code} not accepted: status={status}, kvt count: {count}, kvt_status: {kvt_status}'.format(
+                code=data.code,
+                status=response.status,
+                count=len(response.kvtList) if response.kvtList else 0,
+                kvt_status=response.kvtList[0].status if response.kvtList else 'None'
+            ))
+        return False

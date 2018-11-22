@@ -5,7 +5,7 @@
         <xs:sequence>
             <xs:element name="HNUM1" type="xs:string"/>
             <xs:element name="HFILL1" type="xs:dateTime" minOccurs="0"/>
-            <xs:element name="HNAME" type="xs:string"minOccurs="0"/>
+            <xs:element name="HNAME" type="xs:string" minOccurs="0"/>
             <xs:element name="HTIN" type="xs:string" minOccurs="0"/>
             <xs:element name="HKSTI" type="xs:string" minOccurs="0"/>
             <xs:element name="HSTI" type="xs:string" minOccurs="0"/>

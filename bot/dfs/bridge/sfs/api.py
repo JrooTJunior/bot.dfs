@@ -59,7 +59,7 @@ class SfsApiClient(object):
         result = self.report([
             {'contentBase64': data, 'fname': filename}
         ])
-        return result.id
+        return result
 
     def send_report_from_file(self, file_path):
         filename = os.path.basename(file_path)

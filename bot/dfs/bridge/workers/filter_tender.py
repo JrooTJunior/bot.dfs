@@ -10,7 +10,7 @@ from gevent import spawn
 from gevent.hub import LoopExit
 from simplejson import loads
 
-from bot.dfs.bridge.utils import generate_req_id, journal_context, is_code_valid
+from bot.dfs.bridge.utils import generate_req_id, journal_context, is_code_valid, is_vatin_valid
 from bot.dfs.bridge.data import Data
 from bot.dfs.bridge.workers.base_worker import BaseWorker
 from bot.dfs.bridge.journal_msg_ids import DATABRIDGE_TENDER_NOT_PROCESS
@@ -49,8 +49,9 @@ class FilterTenders(BaseWorker):
                 continue
             try:
                 response = self.tenders_sync_client.request("GET",
-                                                            path='{}/{}'.format(self.tenders_sync_client.prefix_path,
-                                                                                tender_id),
+                                                            path='{}/{}'.format(
+                                                                self.tenders_sync_client.prefix_path,
+                                                                tender_id),
                                                             headers={'X-Client-Request-ID': generate_req_id()})
             except Exception as e:
                 if getattr(e, "status_int", False) == 429:
@@ -110,12 +111,14 @@ def journal_item_params(tender_id, bid_id, award_id):
 
 
 def get_codes(award):
-    return [(supplier['identifier']['id'], supplier['identifier']['legalName'])
+    return [(supplier['identifier']['id'],
+             supplier['identifier']['legalName'] if 'legalName' in supplier['identifier'] else supplier['name'])
             for supplier in award['suppliers'] if is_valid(supplier)]
 
 
 def is_valid(supplier):
-    return is_code_valid(supplier['identifier']['id']) and supplier['identifier']['scheme'] == scheme
+    return (is_code_valid(supplier['identifier']['id']) or is_vatin_valid(supplier['identifier']['id'])) \
+           and supplier['identifier']['scheme'] == scheme
 
 
 def check_related_lot_status(tender, award):

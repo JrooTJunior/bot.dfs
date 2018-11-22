@@ -54,7 +54,7 @@ class Filename(object):
                "{file_ext}".format(org=str(self.org).rjust(4, '0'),
                                    sender_edrpou=str(self.sender_edrpou).rjust(10, '0'),
                                    c_doc=str(self.c_doc),
-                                   c_doc_sub=str(self.c_doc_sub).rjust(3),
+                                   c_doc_sub=str(self.c_doc_sub).rjust(3, '0'),
                                    c_doc_ver=str(self.c_doc_ver).rjust(2, '0'),
                                    c_doc_stan=str(self.c_doc_stan),
                                    c_doc_type=str(self.c_doc_type).rjust(2, '0'),

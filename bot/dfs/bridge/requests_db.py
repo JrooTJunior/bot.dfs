@@ -20,7 +20,7 @@ class RequestsDb(object):
         self._db.zadd("requests:dates", time(), request_id)
 
     def get_pending_requests(self):
-        return {key: self.get_request(key) for key in self._db.smembers("requests:pending")}
+        return {int(key): self.get_request(key) for key in self._db.smembers("requests:pending")}
 
     def get_request(self, request_id):
         return self._db.hgetall(req_key(request_id))

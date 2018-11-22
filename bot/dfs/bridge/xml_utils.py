@@ -1,27 +1,21 @@
 # coding=utf-8
-import os
-import xmlschema
-import logging.config
 import datetime
-from xml.dom import minidom
-from xml.etree import ElementTree
-from xml.etree.ElementTree import Element, SubElement
 
+import logging
+import os
+import pytz as pytz
+import xmlschema
+from xml.dom import minidom
+from xml.etree.ElementTree import Element, SubElement, tostring, fromstring
+
+from sfs.filename import Filename
 
 logger = logging.getLogger(__name__)
 
 
 def is_valid(request):
-    schema = xmlschema.XMLSchema(os.path.join(os.getcwd(), "resources/request.xsd"))
+    schema = xmlschema.XMLSchema(os.path.join(os.getcwd(), "resources/J1603101.xsd"))
     return schema.is_valid(request)
-
-
-def prettify(elem):
-    """Return a pretty-printed XML string for the Element.
-    """
-    rough_string = ElementTree.tostring(elem, 'utf-8')
-    reparsed = minidom.parseString(rough_string)
-    return reparsed.toprettyxml(indent="  ")
 
 
 def form_xml_to_post(data, request_id):
@@ -60,3 +54,73 @@ def form_xml_to_post(data, request_id):
 
 def form_yaml_from_response():
     return {"data": "placeholder"}
+
+
+def get_now():
+    return datetime.datetime.now(pytz.timezone('Europe/Kiev'))
+
+
+def element_with_text(root, tag, text, attrs=None):
+    el = SubElement(root, tag, attrs or {})
+    if not isinstance(text, (str, unicode)):
+        text = str(text)
+    el.text = text
+    return el
+
+
+ORG = '2659'
+C_DOC = 'J16'
+C_DOC_SUB = 31
+C_DOC_VER = 1
+C_DOC_TYPE = 0
+C_REG = 24
+C_RAJ = 12
+PERIOD_TYPE = 1
+C_DOC_STAN = 1
+SOFTWARE = 'ProZorro SFS integration Bot [test]'
+
+
+def prettify(elem):
+    """Return a pretty-printed XML string for the Element.
+    """
+    rough_string = tostring(elem, encoding='utf-8')
+    reparsed = minidom.parseString(rough_string)
+    return reparsed.toprettyxml(indent="    ", encoding='utf-8')
+
+
+from jinja2 import Environment, FileSystemLoader
+
+env = Environment(
+    loader=FileSystemLoader('resources', encoding='windows-1251'),
+)
+env.globals['str'] = str
+
+
+def generate_request(data, request_id):
+    # TODO: Change to real
+
+    now = get_now()
+
+    filename = Filename(org=ORG,
+                        sender_erdpou='1010101017',
+                        c_doc=C_DOC,
+                        c_doc_sub=C_DOC_SUB,
+                        c_doc_ver=C_DOC_VER,
+                        c_doc_stan=C_DOC_STAN,
+                        c_doc_type=C_DOC_TYPE,
+                        c_doc_cnt=request_id,
+                        period_type=PERIOD_TYPE,
+                        period_month=now.month,
+                        period_year=now.year,
+                        file_ext='.XML')
+
+    template = env.get_template('request.xml')
+    content = template.render({'data': data, 'now': now, 'doc_num': request_id, 'request_id': 42}).encode('utf-8')
+
+    # print '::', filename.export()
+    # print '::', content
+
+    request = fromstring(content)
+    if not is_valid(request):
+        raise ValueError('Generated request for {code} is invalid!'.format(code=data.code))
+    return content, filename.export()

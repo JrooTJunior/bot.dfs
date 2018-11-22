@@ -98,7 +98,7 @@ class EdrDataBridge(object):
 
         self.euscp = EUSignCP(key=self.config_get('key_path'),
                               password=self.config_get('psz_password'),
-                              certificate_name='',
+                              certificate_name=self.config_get('certificate_name'),
                               certificates_dir=self.config_get('certificates_path'))
         self.sfs_client = SfsApiClient(self.euscp)
 
