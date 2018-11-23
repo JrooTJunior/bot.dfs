@@ -93,8 +93,8 @@ class SfsWorker(BaseWorker):
         if response.status == 'OK':
             logger.info('Request for {code} accepted.'.format(code=data.code))
             # response = self.sfs_client.extract_data(response.kvtList[0].kvtBase64)  # Encrypted Base64 -> XML
-            with open('req_{}_{}'.format(response.id, fname), 'wb') as f:
-                f.write(content)
+            # with open('req_{}_{}'.format(response.id, fname), 'wb') as f:
+            #     f.write(content)
             return response.id
 
         logger.error(
