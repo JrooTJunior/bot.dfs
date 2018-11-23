@@ -34,17 +34,14 @@ class SfsWorker(BaseWorker):
     def send_sfs_request(self):
         while not self.exit:
             data = self.sfs_reqs_queue.get()
-            if self.requests_db.check_award(data.tender_id, data.award_id):
-                logger.info(u'{} in already in process'.format(data))
-            else:
-                logger.info(u"Got data from edrpou_codes_queue: {}".format(data))
+            logger.info(u"Got data from edrpou_codes_queue: {}".format(data))
 
-                recent_reqs = self.requests_db.recent_requests_with(data.code)
-                logger.info("Recent requests: {}".format(recent_reqs))
-                if not recent_reqs:
-                    self.process_new_request(data)
-                else:
-                    self.process_existing_request(data, recent_reqs[0])
+            recent_reqs = self.requests_db.recent_requests_with(data.code)
+            logger.info("Recent requests: {}".format(recent_reqs))
+            if not recent_reqs:
+                self.process_new_request(data)
+            else:
+                self.process_existing_request(data, recent_reqs[0])
             sleep(self.delay)
 
     def process_new_request(self, data):
