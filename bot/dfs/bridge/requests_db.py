@@ -1,5 +1,6 @@
 # coding=utf-8
 from time import time
+
 from simplejson import loads
 
 from bot.dfs.bridge.data import Data
@@ -35,6 +36,10 @@ class RequestsDb(object):
         # self._db.put(award_key(tender_id, award_id), request_id)
         self._db.sadd("tenders_of:{}".format(request_id), award_key(tender_id, award_id))
 
+    def check_award(self, tender_id, award_id):
+        # Award in Redis
+        return bool(self._db.hlen(award_key(tender_id, award_id)))
+
     def recent_requests_with(self, code):
         # if self._db.has("requests:dates") and self._db.has("request:edrpou"):
         self._db.zinterstore("recent:requests:edrpou:{}".format(code), ("requests:edrpou:{}".format(code),
@@ -63,6 +68,13 @@ class RequestsDb(object):
 
     def add_daily_request(self):
         self._db.incr("requests:number")
+
+    def get_daily_request(self):
+        return int(self._db.get("requests:number") or 1)
+
+    def daily_request(self):
+        self.add_daily_request()
+        return self.get_daily_request()
 
 
 def award_key(tender_id, award_id):

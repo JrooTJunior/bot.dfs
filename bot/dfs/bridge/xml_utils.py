@@ -5,6 +5,7 @@ import logging
 import os
 import pytz as pytz
 import xmlschema
+import yaml
 from xml.dom import minidom
 from xml.etree.ElementTree import Element, SubElement, tostring, fromstring
 
@@ -52,20 +53,42 @@ def form_xml_to_post(data, request_id):
     logger.info("Request {} is valid? {}".format(request_id, is_valid(request)))
 
 
-def form_yaml_from_response():
-    return {"data": "placeholder"}
+def parse_response(fname, content):
+    filename = Filename.read(fname)
+    print filename.c_doc, filename.c_doc_sub, filename.c_doc_ver
+    if filename.c_doc != 'J17' or filename.c_doc_sub != '031' or filename.c_doc_ver != '01':
+        raise ValueError('Invalid file scheme!')
+
+    doc = fromstring(content)
+    body = doc.find('DECLARBODY')
+
+    name = body.find('R0202G1S').text
+    code = body.find('R0201G1S').text
+    status = body.find('R0301G1S').text
+    result = body.find('R0401G1S').text
+    hfill = body.find('HFILL').text
+    htime = body.find('HTIME').text
+
+    index = filename.c_doc_cnt
+
+    dt = datetime.datetime.strptime(hfill + htime, '%d%m%Y%H:%M:%S').replace(tzinfo=pytz.timezone('Europe/Kiev'))
+
+    return {
+        'id': str(index),
+        'name': name,
+        'code': code,
+        'status': int(status),
+        'result': int(result) if result else None,
+        'date': dt.isoformat()
+    }
+
+
+def prepare_yaml(data):
+    return yaml.dump(data, default_flow_style=False)
 
 
 def get_now():
     return datetime.datetime.now(pytz.timezone('Europe/Kiev'))
-
-
-def element_with_text(root, tag, text, attrs=None):
-    el = SubElement(root, tag, attrs or {})
-    if not isinstance(text, (str, unicode)):
-        text = str(text)
-    el.text = text
-    return el
 
 
 ORG = '2659'
@@ -115,7 +138,8 @@ def generate_request(data, request_id):
                         file_ext='.XML')
 
     template = env.get_template('request.xml')
-    content = template.render({'data': data, 'now': now, 'doc_num': request_id, 'request_id': 42}).encode('utf-8')
+    content = template.render({'data': data, 'now': now, 'doc_num': request_id, 'request_id': 42}).encode(
+        'windows-1251')
 
     # print '::', filename.export()
     # print '::', content

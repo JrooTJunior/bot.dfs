@@ -9,9 +9,7 @@ from .EUSignCP.Usage.v2.Interface.x64.EUSignCP import *
 from .acsk import Acsk
 
 VERIFY_SSL = False  # Disabled SSL verification due to invalid local ca-bundle.
-acsk_log = logging.getLogger('acsk')
-net_log = logging.getLogger('net')
-euscp_log = logging.getLogger('euscp')
+euscp_log = logging.getLogger(__name__)
 
 
 class EUSignCP(object):

@@ -43,7 +43,8 @@ class ProcessTracker(object):
         else:
             self.processed_items[key] = datetime.now()
             self._remove_unprocessed_item(document_id)
-            del self.processing_items[key]
+            if key in self.processing_items:
+                del self.processing_items[key]
 
     def update_items_and_tender(self, tender_id, award_id, document_id):
         self._update_processing_items(tender_id, award_id, document_id)

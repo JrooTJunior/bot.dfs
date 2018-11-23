@@ -2,7 +2,7 @@
 import random
 from gevent import monkey, sleep
 
-from bot.dfs.bridge.sfs.exceptions import SfsApiError, SfsJsonApiError
+from bot.dfs.bridge.sfs.exceptions import SfsJsonApiError
 from bot.dfs.bridge.xml_utils import generate_request
 
 monkey.patch_all()
@@ -34,22 +34,29 @@ class SfsWorker(BaseWorker):
     def send_sfs_request(self):
         while not self.exit:
             data = self.sfs_reqs_queue.get()
-            logger.info(u"Got data from edrpou_codes_queue: {}".format(data))
-            recent_reqs = self.requests_db.recent_requests_with(data.code)
-            logger.info("Recent requests: {}".format(recent_reqs))
-            if not recent_reqs:
-                self.process_new_request(data)
+            if self.requests_db.check_award(data.tender_id, data.award_id):
+                logger.info(u'{} in already in process'.format(data))
             else:
-                self.process_existing_request(data, recent_reqs[0])
+                logger.info(u"Got data from edrpou_codes_queue: {}".format(data))
+
+                recent_reqs = self.requests_db.recent_requests_with(data.code)
+                logger.info("Recent requests: {}".format(recent_reqs))
+                if not recent_reqs:
+                    self.process_new_request(data)
+                else:
+                    self.process_existing_request(data, recent_reqs[0])
             sleep(self.delay)
 
     def process_new_request(self, data):
         """Make a new request, bind award in question to it"""
         logger.info(u"Processing new request: {}".format(data))
         request_id = self.send_request(data)
-        self.requests_db.add_sfs_request(request_id, {"code": data.code, "tender_id": data.tender_id,
-                                                      "name": data.name, "kvt2": "", "doc_url": ""})
-        self.requests_db.add_award(data.tender_id, data.award_id, request_id, data)
+        if request_id:
+            self.requests_db.add_sfs_request(request_id, {"code": data.code, "tender_id": data.tender_id,
+                                                          "name": data.name})
+            self.requests_db.add_award(data.tender_id, data.award_id, request_id, data)
+        else:
+            logger.warning('Request is not accepted')
 
     def process_existing_request(self, data, existing_request_id):
         logger.info(u"Processing existing request: {};\t{}".format(data, existing_request_id))
@@ -67,9 +74,9 @@ class SfsWorker(BaseWorker):
         return {"send_sfs_request": self.send_sfs_request()}
 
     def send_request(self, data):
-        request_id = random.randint(0, 1000)
+        request_id = self.requests_db.daily_request()
+
         try:
-            data.code = '1234567890'  # TODO: change
             content, fname = generate_request(data, request_id)  # data -> Encrypted XML + filename
 
         except ValueError as e:
@@ -77,15 +84,17 @@ class SfsWorker(BaseWorker):
             raise
 
         try:
+            logger.info('Send request to SFS')
             response = self.sfs_client.send_report(content, fname)
         except SfsJsonApiError as e:
-            print(e.response_data)
             logger.error('Request for code {code} failed: {e}'.format(code=data.code, e=e))
             return False
 
         if response.status == 'OK':
             logger.info('Request for {code} accepted.'.format(code=data.code))
             # response = self.sfs_client.extract_data(response.kvtList[0].kvtBase64)  # Encrypted Base64 -> XML
+            with open('req_{}_{}'.format(response.id, fname), 'wb') as f:
+                f.write(content)
             return response.id
 
         logger.error(

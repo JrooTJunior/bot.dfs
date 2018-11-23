@@ -61,6 +61,9 @@ class Db(object):
     def hmset(self, key, value):
         return self.db.hmset(key, value)
 
+    def hlen(self, name):
+        self.db.hlen(name)
+
     def srem(self, key, value):
         self.db.srem(key, value)
 
@@ -75,6 +78,9 @@ class Db(object):
 
     def zrangebyscore(self, name, min, max):
         return self.db.zrangebyscore(name, min, max)
+
+    def incr(self, key, amount=1):
+        return self.db.incr(key, amount=amount)
 
 
 def db_key(tender_id):

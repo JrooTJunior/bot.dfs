@@ -6,7 +6,7 @@ import requests
 
 VERIFY_SSL = False  # Disabled SSL verification due to invalid local ca-bundle.
 
-log = logging.getLogger('acsk')
+log = logging.getLogger(__name__)
 
 
 class Acsk:

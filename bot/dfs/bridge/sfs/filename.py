@@ -76,7 +76,7 @@ class Filename(object):
         c_doc_ver = string[20:22]
         c_doc_stan = string[22]
         c_doc_type = string[23:25]
-        c_doc_cnt = int(string[25:32])
+        c_doc_cnt = int(string[25:32].lstrip('0'))
         period_type = string[32]
         period_month = int(string[33:35])
         period_year = int(string[35:39])
