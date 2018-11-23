@@ -71,8 +71,8 @@ class RequestForReference(BaseWorker):
     def sfs_receiver(self, request_id, code):
         """Get documents from SFS, put request id with received documents to queue"""
         try:
-            # TODO: use original request_id
-            fname, response = self.send_request(code, 265970437696953)  # request_id)
+            # fname, response = self.send_request(code, 265970437696953)
+            fname, response = self.send_request(code, request_id)
         except Exception as e:
             logger.warning('Fail to check incoming correspondence: {}'.format(e))
             return False
