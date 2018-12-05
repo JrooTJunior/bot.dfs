@@ -1,5 +1,4 @@
 # coding=utf-8
-import random
 from gevent import monkey, sleep
 
 from bot.dfs.bridge.sfs.exceptions import SfsJsonApiError
@@ -89,9 +88,8 @@ class SfsWorker(BaseWorker):
 
         if response.status == 'OK':
             logger.info('Request for {code} accepted.'.format(code=data.code))
-            # response = self.sfs_client.extract_data(response.kvtList[0].kvtBase64)  # Encrypted Base64 -> XML
-            # with open('req_{}_{}'.format(response.id, fname), 'wb') as f:
-            #     f.write(content)
+            # print response
+            # result = self.sfs_client.extract_data(response.kvt1Base64)  # Encrypted Base64 -> XML
             return response.id
 
         logger.error(
