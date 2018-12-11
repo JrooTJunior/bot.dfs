@@ -67,14 +67,14 @@ class RequestsDb(object):
         return all_the_data
 
     def add_daily_request(self):
-        self._db.incr("requests:number")
+        return int(self._db.incr("requests:number") or 1)
 
     def get_daily_request(self):
         return int(self._db.get("requests:number") or 1)
 
     def daily_request(self):
-        self.add_daily_request()
-        return self.get_daily_request()
+        return self.add_daily_request()
+        # return self.get_daily_request()
 
 
 def award_key(tender_id, award_id):
